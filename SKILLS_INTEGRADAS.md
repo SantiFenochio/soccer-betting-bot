@@ -84,6 +84,65 @@ Diferencial >= +0.5 → 12 puntos
 
 📖 **Ver documentación:** `.claude/skills/understat-xg-integrator/README.md`
 
+---
+
+### 💰 3. **full-odds-multi-bookmaker**
+**Descripción:** Odds reales de 10+ bookmakers para todas las ligas
+
+**Rol:** Proveedor de cuotas reales para análisis de value betting
+
+**Capacidades:**
+- API de The Odds API (30+ sports, 200+ bookmakers)
+- Compara odds de 10+ bookmakers simultáneamente
+- Encuentra la mejor cuota disponible
+- Calcula Expected Value (EV) real
+- Scoring de 0-15 puntos para sistema multi-factorial
+
+**Ligas Soportadas (12+):**
+- ✅ EPL, La Liga, Bundesliga, Serie A, Ligue 1
+- ✅ Liga Argentina, Brasileirão
+- ✅ Champions, Europa League, Mundial, Copa América
+
+**Bookmakers (10+):**
+- Bet365, Pinnacle, William Hill, Betfair, 1xBet
+- Unibet, 888sport, Betsson, Betway, Bwin
+
+**Sistema de Scoring (15 puntos):**
+```python
+# Factor 5: Expected Value
+EV ≥ 15% → 15 puntos
+EV ≥ 10% → 12 puntos
+EV ≥ 5%  → 9 puntos
+EV ≥ 2%  → 6 puntos
+```
+
+**Integración con fijini-orchestrator:**
+- El Value Detector (subagent 3) usa esta skill automáticamente
+- Aporta el factor de 15 puntos "Expected Value"
+- Datos reales de mercado, no estimados
+
+**Se activa con:**
+- `/fijini` (vía orchestrator)
+- Análisis de value betting
+- Cálculo de Expected Value
+
+**Performance:**
+- ✅ Requests/día: ~30-50 (con cache)
+- ✅ Cache: 10 minutos
+- ✅ Response time: <1 segundo
+- ✅ Free tier: 500 requests/mes
+
+**API Configuration:**
+```bash
+# Requiere API key de The Odds API
+ODDS_API_KEY=tu_key_aqui
+# Get free key: https://the-odds-api.com
+```
+
+📖 **Ver documentación:** `.claude/skills/full-odds-multi-bookmaker/README.md`
+
+---
+
 **Capacidades:**
 - Orquesta 4 subagentes en paralelo: Data Fetcher, xG Analyzer, Value Detector, Context Analyzer
 - Sistema multi-factorial de 100 puntos (5 factores)
@@ -112,7 +171,7 @@ Fijini Orchestrator (Lead)
 
 ---
 
-### 3. **football-data** ⚽
+### 4. **football-data** ⚽
 **Fuente:** `machina-sports/sports-skills@football-data`
 
 16 skills especializadas en datos de fútbol que proporcionan:
@@ -125,7 +184,7 @@ Fijini Orchestrator (Lead)
 
 ---
 
-### 4. **sports-betting-analyzer** 🎲
+### 5. **sports-betting-analyzer** 🎲
 **Descripción:** Análisis profesional de spreads, over/unders, prop bets
 
 **Capacidades:**
@@ -141,7 +200,7 @@ Fijini Orchestrator (Lead)
 
 ---
 
-### 5. **player-comparison-tool** 👥
+### 6. **player-comparison-tool** 👥
 **Descripción:** Comparaciones estadísticas de jugadores con contexto
 
 **Capacidades:**
@@ -157,7 +216,7 @@ Fijini Orchestrator (Lead)
 
 ---
 
-### 6. **injury-report-tracker** 🏥
+### 7. **injury-report-tracker** 🏥
 **Descripción:** Monitor de lesiones y análisis de impacto
 
 **Capacidades:**
@@ -173,7 +232,7 @@ Fijini Orchestrator (Lead)
 
 ---
 
-### 7. **team-chemistry-evaluator** 🤝
+### 8. **team-chemistry-evaluator** 🤝
 **Descripción:** Análisis de dinámica y química de equipos
 
 **Capacidades:**
@@ -189,7 +248,7 @@ Fijini Orchestrator (Lead)
 
 ---
 
-### 8. **game-strategy-simulator** 🎮
+### 9. **game-strategy-simulator** 🎮
 **Descripción:** Simulación de estrategias y escenarios de partido
 
 **Capacidades:**
@@ -205,7 +264,7 @@ Fijini Orchestrator (Lead)
 
 ---
 
-### 9. **scouting-report-builder** 📊
+### 10. **scouting-report-builder** 📊
 **Descripción:** Construcción de reportes de scouting detallados
 
 **Capacidades:**
@@ -387,13 +446,14 @@ En el directorio `claude-skills/` hay **100 skills** más, incluyendo:
 
 ## 🎉 Resumen
 
-Ahora el bot tiene **10 skills especializadas** lideradas por el **fijini-orchestrator**:
+Ahora el bot tiene **11 skills especializadas** lideradas por el **fijini-orchestrator**:
 
 ### 🎯 Lead Agent
 ✅ **fijini-orchestrator** - Orquesta todo el análisis multi-factorial
 
-### ⚽ Data Providers
+### ⚽ Data Providers (3)
 ✅ **understat-xg-integrator** - Datos xG reales de Understat/FBref
+✅ **full-odds-multi-bookmaker** - Odds reales de 10+ bookmakers
 ✅ **football-data** - Datos en tiempo real (16 sub-skills)
 
 ### 🔧 Analyzer Skills
@@ -418,4 +478,4 @@ Ahora el bot tiene **10 skills especializadas** lideradas por el **fijini-orches
 ---
 
 **Última actualización:** 29 de Marzo, 2026
-**Skills instaladas:** 10 (1 lead agent + 1 xG integrator + 7 del repositorio OneWave-AI + 1 de machina-sports)
+**Skills instaladas:** 11 (1 lead agent + 2 data providers + 7 analyzers + 1 de machina-sports)

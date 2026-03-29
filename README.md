@@ -21,8 +21,9 @@ El bot usa una **arquitectura orquestada** con un lead agent coordinando múltip
 ### 🔥 Lead Agent
 - **fijini-orchestrator** - Orquestador principal que coordina todo el análisis multi-factorial del comando `/fijini`
 
-### ⚽ Data Providers
+### ⚽ Data Providers (3)
 - **understat-xg-integrator** - Obtiene datos xG REALES de Understat/FBref (no estimados)
+- **full-odds-multi-bookmaker** - Odds reales de 10+ bookmakers (Bet365, Pinnacle, etc.)
 - **football-data** ⚽ - 16 skills de datos de fútbol en tiempo real
 
 ### 🔧 Analyzer Skills (7 especializadas)
@@ -151,6 +152,15 @@ Ver guía completa: [INSTALL.md](INSTALL.md)
 - **[MEJORAS_PROPUESTAS.md](MEJORAS_PROPUESTAS.md)** - 50+ mejoras futuras investigadas
 
 ## 🔥 Últimas Mejoras (Marzo 2026)
+
+### 💰 Mejora #7: full-odds-multi-bookmaker
+- ✅ Odds reales de 10+ bookmakers
+- ✅ Compara Bet365, Pinnacle, William Hill, Betfair, 1xBet, etc.
+- ✅ Encuentra la mejor cuota disponible
+- ✅ Calcula Expected Value (EV) real
+- ✅ Scoring 0-15 puntos (Factor 5)
+- ✅ Integración con fijini-orchestrator
+- ✅ Cobertura: 12+ ligas principales
 
 ### 🎯 Mejora #6: understat-xg-integrator
 - ✅ Datos xG REALES de Understat.com (no estimados)
