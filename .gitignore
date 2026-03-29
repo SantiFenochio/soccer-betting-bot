@@ -35,6 +35,10 @@ logs/
 *.sqlite3
 soccerdata/
 
+# Skills repositories (too large)
+claude-skills/
+skills/
+
 # IDE
 .vscode/
 .idea/
