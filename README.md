@@ -21,8 +21,11 @@ El bot usa una **arquitectura orquestada** con un lead agent coordinando múltip
 ### 🔥 Lead Agent
 - **fijini-orchestrator** - Orquestador principal que coordina todo el análisis multi-factorial del comando `/fijini`
 
-### 🔧 Worker Skills (8 especializadas)
+### ⚽ Data Providers
+- **understat-xg-integrator** - Obtiene datos xG REALES de Understat/FBref (no estimados)
 - **football-data** ⚽ - 16 skills de datos de fútbol en tiempo real
+
+### 🔧 Analyzer Skills (7 especializadas)
 - **sports-betting-analyzer** 🎲 - Identificación de value bets profesional
 - **player-comparison-tool** 👥 - Comparación estadística de jugadores
 - **injury-report-tracker** 🏥 - Monitor de lesiones y análisis de impacto
@@ -149,8 +152,17 @@ Ver guía completa: [INSTALL.md](INSTALL.md)
 
 ## 🔥 Últimas Mejoras (Marzo 2026)
 
+### 🎯 Mejora #6: understat-xg-integrator
+- ✅ Datos xG REALES de Understat.com (no estimados)
+- ✅ Fallback automático a FBref.com
+- ✅ Cache de 6 horas + rate limiting
+- ✅ Scoring de 0-20 puntos para factor xG
+- ✅ Integración automática con fijini-orchestrator
+- ✅ Cobertura: Top 5 ligas europeas
+
 ### ⚡ Mejora #5: Skills de IA Integradas
-- ✅ 8 skills especializadas instaladas
+- ✅ 10 skills especializadas instaladas (1 lead + 2 data + 7 analyzers)
+- ✅ fijini-orchestrator: Lead agent orquestador
 - ✅ football-data: 16 skills de datos en tiempo real
 - ✅ sports-betting-analyzer: Análisis profesional de apuestas
 - ✅ injury-report-tracker: Monitor de lesiones automático
