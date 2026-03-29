@@ -66,6 +66,7 @@ Bot profesional con análisis avanzado y gestión de bankroll.
 🎯 *Tu Chat ID:* `{chat_id}`
 
 🔥 *NUEVAS CARACTERÍSTICAS:*
+🎯 /fijini - TOP 3 LOCKS DEL DÍA (NUEVO!)
 📊 Análisis xG (Expected Goals) real
 💰 Sistema de Value Bets automático
 📈 Gestión de Bankroll profesional
@@ -74,6 +75,7 @@ Bot profesional con análisis avanzado y gestión de bankroll.
 ✅ Predicciones con +65% precisión
 
 📋 *Comandos principales:*
+🔥 `/fijini` - ¡COMIENZA AQUÍ! Top 3 del día
 🎯 `/hoy` - Partidos de hoy
 ⚽ `/partido [equipo1] vs [equipo2]` - Predicción completa
 📊 `/xg [equipo1] vs [equipo2]` - Análisis xG
@@ -103,6 +105,10 @@ Bot profesional con análisis avanzado y gestión de bankroll.
         help_text = """
 📖 *Guía de Comandos*
 
+🔥 *NUEVO - LOCKS DEL DÍA:*
+/fijini - Top 3 mejores apuestas del día
+   _Análisis completo del mercado con múltiples factores_
+
 🎯 *Análisis de partidos:*
 /hoy - Partidos de hoy con predicciones
 /proximos 3 - Partidos de los próximos 3 días
@@ -129,6 +135,7 @@ Bot profesional con análisis avanzado y gestión de bankroll.
 /suscribir - Activar/desactivar notificaciones diarias
 
 💡 *Ejemplos:*
+• `/fijini` - ¡COMIENZA AQUÍ! 🔥
 • `/partido Barcelona vs Real Madrid`
 • `/xg Manchester City vs Liverpool EPL`
 • `/h2h Real Madrid vs Barcelona`
@@ -892,6 +899,77 @@ Ejemplos:
             logger.error(f"Error en /historial: {e}")
             await update.message.reply_text("❌ Error al obtener historial")
 
+    async def fijini_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Comando /fijini - Top 3 locks del día"""
+        await update.message.reply_text(
+            "🔍 *ANALIZANDO TODO EL MERCADO...*\n\n"
+            "Buscando las 3 mejores apuestas del día:\n"
+            "• Analizando todos los partidos 📊\n"
+            "• Evaluando xG data ⚽\n"
+            "• Revisando momentum 🔥\n"
+            "• Checkeando H2H history ⚔️\n"
+            "• Calculando value bets 💰\n\n"
+            "_Esto puede tardar 30-60 segundos..._",
+            parse_mode=ParseMode.MARKDOWN
+        )
+
+        try:
+            # Obtener TODOS los partidos del día
+            matches = self.analyzer.get_today_matches()
+
+            if not matches:
+                await update.message.reply_text(
+                    "😔 No hay partidos programados para hoy.\n"
+                    "Prueba mañana con /fijini"
+                )
+                return
+
+            logger.info(f"Encontrados {len(matches)} partidos para analizar locks")
+
+            # Analizar con el sistema de locks
+            from daily_locks import DailyLocksAnalyzer
+
+            locks_analyzer = DailyLocksAnalyzer()
+            locks = locks_analyzer.find_daily_locks(matches, top_n=3)
+
+            # Formatear y enviar
+            formatted = locks_analyzer.format_locks_for_telegram(locks)
+
+            # Telegram tiene límite de 4096 caracteres, dividir si es necesario
+            if len(formatted) > 4000:
+                # Dividir en chunks
+                chunks = []
+                current_chunk = ""
+
+                for line in formatted.split('\n'):
+                    if len(current_chunk) + len(line) + 1 < 4000:
+                        current_chunk += line + '\n'
+                    else:
+                        chunks.append(current_chunk)
+                        current_chunk = line + '\n'
+
+                if current_chunk:
+                    chunks.append(current_chunk)
+
+                # Enviar cada chunk
+                for chunk in chunks:
+                    await update.message.reply_text(chunk, parse_mode=ParseMode.MARKDOWN)
+            else:
+                await update.message.reply_text(formatted, parse_mode=ParseMode.MARKDOWN)
+
+        except Exception as e:
+            logger.error(f"Error en /fijini: {e}")
+            import traceback
+            traceback.print_exc()
+            await update.message.reply_text(
+                "❌ Error al analizar locks del día.\n\n"
+                "Posibles causas:\n"
+                "• No hay suficientes datos disponibles\n"
+                "• Error en APIs externas\n"
+                "• Partidos sin stats suficientes\n\n"
+                "Intenta de nuevo en unos minutos o prueba /hoy"
+            )
+
     async def unknown_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Manejar comandos desconocidos"""
         await update.message.reply_text(
@@ -928,6 +1006,9 @@ Ejemplos:
         self.app.add_handler(CommandHandler("balance", self.balance_command))
         self.app.add_handler(CommandHandler("apostar", self.bet_register_command))
         self.app.add_handler(CommandHandler("historial", self.bet_history_command))
+
+        # Daily Locks Command
+        self.app.add_handler(CommandHandler("fijini", self.fijini_command))
 
         # Manejar mensajes desconocidos
         self.app.add_handler(MessageHandler(filters.COMMAND, self.unknown_command))
