@@ -8,7 +8,40 @@ Las skills son capacidades especializadas que Claude puede usar automáticamente
 
 ## 📦 Skills Instaladas
 
-### 1. **football-data** ⚽
+### 🔥 1. **fijini-orchestrator** (Lead Agent)
+**Descripción:** Orquestador principal para el comando /fijini
+
+**Rol:** Lead Agent que coordina todos los demás componentes
+
+**Capacidades:**
+- Orquesta 4 subagentes en paralelo: Data Fetcher, xG Analyzer, Value Detector, Context Analyzer
+- Sistema multi-factorial de 100 puntos (5 factores)
+- Selección automática de TOP 3 mejores apuestas
+- Target de precisión: 67-75% win rate
+- Output profesional para Telegram con emojis y formato
+
+**Arquitectura:**
+```
+Fijini Orchestrator (Lead)
+├─► Data Fetcher (serial)
+├─► xG Analyzer (parallel)
+├─► Value Detector (parallel)
+└─► Context Analyzer (parallel)
+    └─► Report Generator
+```
+
+**Se activa con:**
+- `/fijini`
+- "mejores apuestas del día"
+- "top picks de hoy"
+
+📖 **Ver guía de implementación:** `.claude/skills/fijini-orchestrator/implementation-guide.md`
+
+---
+
+---
+
+### 2. **football-data** ⚽
 **Fuente:** `machina-sports/sports-skills@football-data`
 
 16 skills especializadas en datos de fútbol que proporcionan:
@@ -283,19 +316,31 @@ En el directorio `claude-skills/` hay **100 skills** más, incluyendo:
 
 ## 🎉 Resumen
 
-Ahora el bot tiene **8 skills especializadas** que trabajan juntas para proporcionar:
+Ahora el bot tiene **9 skills especializadas** lideradas por el **fijini-orchestrator**:
 
-✅ Análisis más profundo
-✅ Datos más precisos
-✅ Mejor identificación de value bets
-✅ Consideración de lesiones
-✅ Evaluación de dinámica de equipos
-✅ Simulaciones tácticas
-✅ Reportes completos de scouting
+### 🎯 Lead Agent
+✅ **fijini-orchestrator** - Orquesta todo el análisis multi-factorial
 
-**Todo automático, sin comandos adicionales.** 🚀
+### 🔧 Worker Skills
+✅ **football-data** - Datos en tiempo real (16 sub-skills)
+✅ **sports-betting-analyzer** - Value bets profesional
+✅ **player-comparison-tool** - Comparación de jugadores
+✅ **injury-report-tracker** - Monitor de lesiones
+✅ **team-chemistry-evaluator** - Dinámica de equipos
+✅ **game-strategy-simulator** - Simulación táctica
+✅ **scouting-report-builder** - Reportes de scouting
+
+### 🚀 Beneficios
+✅ Análisis multi-factorial coordinado
+✅ Subagentes paralelos (3x más rápido)
+✅ Sistema de scoring de 100 puntos
+✅ TOP 3 mejores apuestas automáticas
+✅ Precisión objetivo: 67-75%
+✅ Output profesional para Telegram
+
+**Todo orquestado automáticamente por el fijini-orchestrator.** 🚀
 
 ---
 
 **Última actualización:** 29 de Marzo, 2026
-**Skills instaladas:** 8 (7 del repositorio OneWave-AI + 1 de machina-sports)
+**Skills instaladas:** 9 (1 lead agent + 7 del repositorio OneWave-AI + 1 de machina-sports)

@@ -14,10 +14,14 @@ Bot de Telegram profesional que analiza datos de fútbol con IA y envía predicc
 - **Notificaciones por Telegram** con recomendaciones diarias
 - **Comandos interactivos** para análisis profundo
 
-## 🤖 Skills de IA Integradas
+## 🤖 Arquitectura de IA: Lead Agent + Skills
 
-El bot incluye **8 skills especializadas** que mejoran automáticamente el análisis:
+El bot usa una **arquitectura orquestada** con un lead agent coordinando múltiples skills:
 
+### 🔥 Lead Agent
+- **fijini-orchestrator** - Orquestador principal que coordina todo el análisis multi-factorial del comando `/fijini`
+
+### 🔧 Worker Skills (8 especializadas)
 - **football-data** ⚽ - 16 skills de datos de fútbol en tiempo real
 - **sports-betting-analyzer** 🎲 - Identificación de value bets profesional
 - **player-comparison-tool** 👥 - Comparación estadística de jugadores
@@ -25,6 +29,13 @@ El bot incluye **8 skills especializadas** que mejoran automáticamente el anál
 - **team-chemistry-evaluator** 🤝 - Evaluación de dinámica de equipos
 - **game-strategy-simulator** 🎮 - Simulación de tácticas y estrategias
 - **scouting-report-builder** 📊 - Reportes de scouting automáticos
+
+### ⚡ Subagentes Paralelos
+El fijini-orchestrator lanza **4 subagentes en paralelo** para máxima velocidad:
+1. Data Fetcher - Obtiene todos los partidos del día
+2. xG Analyzer - Analiza Expected Goals
+3. Value Detector - Calcula Expected Value
+4. Context Analyzer - Evalúa forma, H2H, lesiones
 
 📖 **Ver documentación completa:** [SKILLS_INTEGRADAS.md](SKILLS_INTEGRADAS.md)
 
