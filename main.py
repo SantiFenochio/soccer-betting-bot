@@ -9,12 +9,18 @@ import logging
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Configurar logging
+# Fix para emojis en Windows
+if sys.platform == 'win32':
+    import codecs
+    sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+    sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
+
+# Configurar logging con encoding UTF-8
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('./logs/app.log'),
+        logging.FileHandler('./logs/app.log', encoding='utf-8'),
         logging.StreamHandler()
     ]
 )
@@ -95,14 +101,18 @@ def main():
         sys.exit(1)
 
     # 4. Seleccionar modo
-    print("\n¿Qué deseas ejecutar?")
-    print("1. Bot de Telegram (interactivo)")
-    print("2. Scheduler (notificaciones automáticas)")
-    print("3. Ambos (recomendado)")
-    print("4. Test de conexión")
-    print()
+    # Verificar si se pasó argumento de línea de comandos
+    if len(sys.argv) > 1:
+        mode = sys.argv[1]
+    else:
+        print("\n¿Qué deseas ejecutar?")
+        print("1. Bot de Telegram (interactivo)")
+        print("2. Scheduler (notificaciones automáticas)")
+        print("3. Ambos (recomendado)")
+        print("4. Test de conexión")
+        print()
 
-    mode = input("Selecciona una opción (1-4): ").strip()
+        mode = input("Selecciona una opción (1-4): ").strip()
 
     if mode == '1':
         logger.info("🤖 Iniciando Bot de Telegram...")

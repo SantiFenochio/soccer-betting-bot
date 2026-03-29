@@ -24,13 +24,14 @@ class FootballAPIManager:
         self.odds_api_key = os.getenv('ODDS_API_KEY', '')
         self.football_data_key = os.getenv('FOOTBALL_DATA_KEY', '')
 
-    def get_upcoming_matches_api_football(self, days: int = 7) -> List[Dict]:
+    def get_upcoming_matches_api_football(self, days: int = 7, include_international: bool = True) -> List[Dict]:
         """
         Obtener partidos próximos desde API-Football
         Free tier: 100 requests/día
 
         Args:
             days: Días hacia adelante
+            include_international: Incluir partidos internacionales (amistosos, eliminatorias, etc.)
 
         Returns:
             Lista de partidos
@@ -46,21 +47,31 @@ class FootballAPIManager:
 
             # Ligas principales (IDs de API-Football)
             leagues = {
-                140: 'La Liga',
-                39: 'Premier League',
-                78: 'Bundesliga',
-                135: 'Serie A',
-                61: 'Ligue 1',
-                128: 'Liga Profesional Argentina'
+                140: 'La Liga 🇪🇸',
+                39: 'Premier League 🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+                78: 'Bundesliga 🇩🇪',
+                135: 'Serie A 🇮🇹',
+                61: 'Ligue 1 🇫🇷',
+                128: 'Liga Profesional 🇦🇷',
             }
 
+            # Competiciones internacionales
+            if include_international:
+                leagues.update({
+                    1: 'Copa del Mundo 🏆',
+                    9: 'Copa América 🏆',
+                    4: 'Eurocopa 🏆',
+                    5: 'UEFA Nations League 🇪🇺',
+                    15: 'Copa África 🌍',
+                    960: 'Amistosos Internacionales 🌐',
+                    32: 'Copa Mundial Sub-20 🌍',
+                })
+
             all_matches = []
+            today = datetime.now()
+            end_date = today + timedelta(days=days)
 
             for league_id, league_name in leagues.items():
-                # Obtener fixtures de los próximos días
-                today = datetime.now()
-                end_date = today + timedelta(days=days)
-
                 url = "https://v3.football.api-sports.io/fixtures"
                 params = {
                     'league': league_id,
@@ -75,7 +86,7 @@ class FootballAPIManager:
                     data = response.json()
 
                     if data.get('response'):
-                        for match in data['response'][:10]:  # Limitar a 10 por liga
+                        for match in data['response'][:15]:  # Limitar a 15 por liga
                             fixture = match.get('fixture', {})
                             teams = match.get('teams', {})
                             league_info = match.get('league', {})
@@ -83,22 +94,124 @@ class FootballAPIManager:
                             match_data = {
                                 'source': 'API-Football',
                                 'league': league_name,
+                                'competition': league_info.get('name', league_name),
                                 'date': fixture.get('date', ''),
+                                'timestamp': fixture.get('timestamp', 0),
                                 'home_team': teams.get('home', {}).get('name', ''),
                                 'away_team': teams.get('away', {}).get('name', ''),
                                 'venue': fixture.get('venue', {}).get('name', ''),
                                 'referee': fixture.get('referee', ''),
                                 'status': fixture.get('status', {}).get('long', ''),
+                                'round': league_info.get('round', ''),
                             }
 
                             all_matches.append(match_data)
 
-                logger.info(f"✓ Obtenidos partidos de {league_name}")
+                        logger.info(f"✓ Obtenidos {len(data['response'][:15])} partidos de {league_name}")
 
             return all_matches
 
         except Exception as e:
             logger.error(f"Error obteniendo partidos de API-Football: {e}")
+            return []
+
+    def get_all_matches_by_date(self, date: str = None, timezone: str = 'America/Argentina/Buenos_Aires') -> List[Dict]:
+        """
+        Obtener TODOS los partidos de una fecha específica (sin filtrar por liga)
+        Útil para encontrar partidos internacionales y amistosos
+
+        Args:
+            date: Fecha en formato YYYY-MM-DD (None = hoy)
+            timezone: Zona horaria para los horarios
+
+        Returns:
+            Lista de todos los partidos
+        """
+        if not self.api_football_key:
+            logger.warning("API_FOOTBALL_KEY no configurada")
+            return []
+
+        try:
+            if date is None:
+                date = datetime.now().strftime('%Y-%m-%d')
+
+            headers = {
+                'x-apisports-key': self.api_football_key
+            }
+
+            url = "https://v3.football.api-sports.io/fixtures"
+            params = {
+                'date': date,
+                'timezone': timezone
+            }
+
+            response = requests.get(url, headers=headers, params=params, timeout=15)
+
+            if response.status_code == 200:
+                data = response.json()
+                all_matches = []
+
+                if data.get('response'):
+                    logger.info(f"✓ Encontrados {len(data['response'])} partidos para {date}")
+
+                    for match in data['response']:
+                        fixture = match.get('fixture', {})
+                        teams = match.get('teams', {})
+                        league_info = match.get('league', {})
+
+                        # Determinar el emoji según el tipo de competición
+                        league_name = league_info.get('name', 'Unknown')
+                        country = league_info.get('country', '')
+
+                        # Agregar emoji según el país/competición
+                        emoji_map = {
+                            'World': '🌐',
+                            'International': '🌐',
+                            'Friendlies': '🤝',
+                            'Argentina': '🇦🇷',
+                            'Spain': '🇪🇸',
+                            'England': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
+                            'Germany': '🇩🇪',
+                            'Italy': '🇮🇹',
+                            'France': '🇫🇷',
+                            'Brazil': '🇧🇷',
+                            'Colombia': '🇨🇴',
+                        }
+
+                        emoji = '⚽'
+                        for key, emoji_val in emoji_map.items():
+                            if key.lower() in league_name.lower() or key.lower() in country.lower():
+                                emoji = emoji_val
+                                break
+
+                        match_data = {
+                            'source': 'API-Football (All)',
+                            'league': f"{emoji} {league_name}",
+                            'country': country,
+                            'date': fixture.get('date', ''),
+                            'timestamp': fixture.get('timestamp', 0),
+                            'home_team': teams.get('home', {}).get('name', ''),
+                            'away_team': teams.get('away', {}).get('name', ''),
+                            'venue': fixture.get('venue', {}).get('name', ''),
+                            'city': fixture.get('venue', {}).get('city', ''),
+                            'referee': fixture.get('referee', ''),
+                            'status': fixture.get('status', {}).get('long', ''),
+                            'round': league_info.get('round', ''),
+                        }
+
+                        all_matches.append(match_data)
+
+                    return all_matches
+                else:
+                    logger.info(f"No hay partidos para {date}")
+                    return []
+
+            else:
+                logger.error(f"Error API: Status {response.status_code}")
+                return []
+
+        except Exception as e:
+            logger.error(f"Error obteniendo todos los partidos: {e}")
             return []
 
     def get_match_odds(self, home_team: str, away_team: str) -> Optional[Dict]:

@@ -354,25 +354,78 @@ class SoccerAnalyzer:
                 from api_integrations import FootballAPIManager
 
                 api_manager = FootballAPIManager()
-                api_matches = api_manager.get_upcoming_matches_api_football(days=days_ahead if days_ahead > 0 else 1)
+
+                # Si es hoy (days_ahead=0), obtener TODOS los partidos del día
+                if days_ahead == 0:
+                    api_matches = api_manager.get_all_matches_by_date()
+                else:
+                    # Para días futuros, usar el método con ligas específicas
+                    api_matches = api_manager.get_upcoming_matches_api_football(days=days_ahead, include_international=True)
 
                 if api_matches:
                     logger.info(f"✓ Usando API-Football: {len(api_matches)} partidos encontrados")
 
+                    # Filtrar partidos relevantes (ligas importantes y selecciones)
+                    relevant_keywords = [
+                        'Premier', 'Liga', 'Bundesliga', 'Serie A', 'Ligue',
+                        'Mundial', 'Copa', 'International', 'Friendlies', 'Amistosos', 'Friendly',
+                        'Nations League', 'Euro', 'América', 'Eliminatorias', 'Qualifiers',
+                        'Argentina', 'Brazil', 'Colombia', 'Uruguay', 'Chile', 'Peru', 'Ecuador',
+                        'Spain', 'England', 'Germany', 'France', 'Italy', 'Portugal', 'Belgium',
+                        'Netherlands', 'Croatia', 'Mexico', 'USA', 'Japan', 'Korea'
+                    ]
+
                     for match in api_matches:
-                        # Generar predicción
-                        prediction = self.predict_match(
-                            match['home_team'],
-                            match['away_team'],
-                            'ENG'  # Default, mejorar detección de liga
+                        # Verificar si es un partido relevante
+                        league_name = match.get('league', '').lower()
+                        home = match.get('home_team', '').lower()
+                        away = match.get('away_team', '').lower()
+
+                        is_relevant = any(
+                            keyword.lower() in league_name or
+                            keyword.lower() in home or
+                            keyword.lower() in away
+                            for keyword in relevant_keywords
                         )
 
-                        if 'error' not in prediction:
-                            match['predictions'] = prediction.get('predictions', [])
-                            all_matches.append(match)
+                        if is_relevant:
+                            # Normalizar nombres de claves para compatibilidad con bot.py
+                            normalized_match = {
+                                'league': match.get('league', 'Unknown'),
+                                'home': match.get('home_team', ''),
+                                'away': match.get('away_team', ''),
+                                'time': match.get('date', ''),
+                                'timestamp': match.get('timestamp', 0),
+                                'venue': match.get('venue', ''),
+                                'status': match.get('status', 'Scheduled'),
+                            }
+
+                            # Generar predicciones reales usando el motor avanzado
+                            try:
+                                from prediction_engine import PredictionEngine
+                                pred_engine = PredictionEngine()
+                                analysis = pred_engine.analyze_match(
+                                    normalized_match['home'],
+                                    normalized_match['away'],
+                                    normalized_match['league']
+                                )
+                                normalized_match['predictions'] = analysis.get('predictions', [])
+                                normalized_match['analysis'] = analysis
+                            except Exception as e:
+                                logger.warning(f"Error generando predicción: {e}")
+                                normalized_match['predictions'] = [{
+                                    'type': 'Info',
+                                    'description': f"Análisis disponible pronto",
+                                    'confidence': 0
+                                }]
+
+                            all_matches.append(normalized_match)
 
                     if all_matches:
-                        return all_matches
+                        # Ordenar por timestamp
+                        all_matches.sort(key=lambda x: x.get('timestamp', 0))
+                        logger.info(f"✓ {len(all_matches)} partidos relevantes después de filtrado")
+                        return all_matches[:30]  # Limitar a 30 partidos
 
             except ImportError:
                 logger.info("API-Football no disponible, usando FBref...")
