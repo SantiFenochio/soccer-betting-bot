@@ -32,10 +32,10 @@ Tu bot pasó de ser básico a **PROFESIONAL DE NIVEL MUNDIAL** 🌍
 El bot se simplificó completamente para enfocarse 100% en lo que realmente importa: **predicciones de apuestas ultra-potentes**.
 
 **Eliminaciones:**
-- ❌ **Módulo de Bankroll completo** - Eliminado `bankroll_manager.py` y `database.py`
-- ❌ **Comandos de gestión** - Removidos `/bankroll`, `/balance`, `/apostar`, `/historial`, `/liquidar`
-- ❌ **Referencias a stakes** - Ya no se menciona Kelly Criterion, ROI, win rate en outputs
-- ❌ **Complejidad innecesaria** - Bot enfocado solo en recomendaciones puras
+- ❌ **Módulo de Bankroll completo** - Eliminado Kelly Criterion y referencias a stakes
+- ❌ **Comandos de gestión financiera** - Sin comandos `/bankroll`, `/balance`, `/apostar`, `/historial`, `/liquidar`
+- ❌ **Referencias a stakes en outputs** - Ya no se menciona Kelly Criterion, ROI, win rate, % bankroll
+- ❌ **Complejidad innecesaria** - Bot enfocado solo en recomendaciones puras sin gestión de dinero
 
 **Mejoras:**
 - ✅ **Solo comandos esenciales**: `/fijini` (48hs), `/hoy`, `/partido`, `/xg`, `/h2h`, `/start`, `/help`, `/ligas`

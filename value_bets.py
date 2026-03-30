@@ -173,58 +173,6 @@ class ValueBetsAnalyzer:
             logger.error(f"Error comparando bookmakers: {e}")
             return {'error': str(e)}
 
-    def calculate_kelly_criterion(self, predicted_probability: float, odds: float,
-                                 kelly_fraction: float = 0.25) -> Dict:
-        """
-        Calcular tamaño óptimo de apuesta usando Kelly Criterion
-
-        Args:
-            predicted_probability: Probabilidad predicha (0-100)
-            odds: Cuota decimal
-            kelly_fraction: Fracción de Kelly a usar (default: 0.25 = 25% Kelly)
-
-        Returns:
-            Análisis de Kelly
-        """
-        # Convertir a decimal
-        if predicted_probability > 1:
-            predicted_probability = predicted_probability / 100
-
-        # Kelly Criterion: (bp - q) / b
-        # b = odds - 1 (ganancia neta)
-        # p = probabilidad de ganar
-        # q = probabilidad de perder (1 - p)
-
-        b = odds - 1
-        p = predicted_probability
-        q = 1 - p
-
-        # Cálculo Kelly
-        kelly_percentage = (b * p - q) / b
-
-        # Aplicar fracción de Kelly (más conservador)
-        fractional_kelly = kelly_percentage * kelly_fraction
-
-        # No apostar si Kelly es negativo o muy pequeño
-        if kelly_percentage <= 0:
-            return {
-                'kelly_percentage': 0,
-                'fractional_kelly': 0,
-                'recommended_stake': 0,
-                'recommendation': 'NO APOSTAR - Sin valor matemático'
-            }
-
-        # Limitar a máximo 10% del bankroll
-        safe_stake = min(fractional_kelly, 0.10)
-
-        return {
-            'kelly_percentage': round(kelly_percentage * 100, 2),
-            'fractional_kelly': round(fractional_kelly * 100, 2),
-            'recommended_stake': round(safe_stake * 100, 2),
-            'kelly_fraction_used': kelly_fraction,
-            'recommendation': f'Apostar {round(safe_stake * 100, 1)}% del bankroll'
-        }
-
     def detect_arbitrage(self, odds_home: float, odds_draw: float, odds_away: float) -> Dict:
         """
         Detectar oportunidad de arbitraje (surebet)
@@ -287,13 +235,12 @@ class ValueBetsAnalyzer:
         else:
             return "❌ NO APOSTAR - Sin valor"
 
-    def format_value_bet_for_telegram(self, value_bet: Dict, bankroll: float = None) -> str:
+    def format_value_bet_for_telegram(self, value_bet: Dict) -> str:
         """
         Formatear value bet para mostrar en Telegram
 
         Args:
             value_bet: Diccionario con value bet
-            bankroll: Bankroll del usuario (opcional)
 
         Returns:
             String formateado
@@ -305,7 +252,7 @@ class ValueBetsAnalyzer:
 
         msg = f"💰 *VALUE BET DETECTADO*\n\n"
         msg += f"🎯 *Predicción:* {pred}\n"
-        msg += f"📊 *Tu confianza:* {conf}%\n"
+        msg += f"📊 *Confianza:* {conf}%\n"
         msg += f"💵 *Cuota:* {odds}\n\n"
 
         msg += f"📈 *ANÁLISIS DE VALOR:*\n"
@@ -313,18 +260,7 @@ class ValueBetsAnalyzer:
         msg += f"   • Probabilidad implícita: {value['implied_probability']}%\n"
         msg += f"   • Expected Value: *+{value['expected_value']}%* {value['value_rating']}\n\n"
 
-        # Kelly Criterion
-        kelly = self.calculate_kelly_criterion(conf, odds)
-        msg += f"💡 *GESTIÓN DE BANKROLL (Kelly Criterion):*\n"
-        msg += f"   • {kelly['recommendation']}\n"
-
-        if bankroll:
-            stake_amount = bankroll * (kelly['recommended_stake'] / 100)
-            potential_profit = stake_amount * (odds - 1)
-            msg += f"   • Stake sugerido: ${stake_amount:.2f}\n"
-            msg += f"   • Ganancia potencial: ${potential_profit:.2f}\n"
-
-        msg += f"\n{value['recommendation']}"
+        msg += f"{value['recommendation']}"
 
         return msg
 

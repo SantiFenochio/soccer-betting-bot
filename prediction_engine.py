@@ -89,15 +89,17 @@ class PredictionEngine:
                 home_strength['defense'] = max(100 - int(home_stats['xg_against_avg'] * 30), 50)
                 away_strength['defense'] = max(100 - int(away_stats['xg_against_avg'] * 30), 50)
 
-            # Intentar obtener odds si API está disponible
+            # Obtener odds reales desde The Odds API
             odds_data = None
-            if self.api_manager:
+            if self.data_fetcher:
                 try:
-                    odds_data = self.api_manager.get_match_odds(home_team, away_team)
+                    odds_data = self.data_fetcher.get_real_odds(home_team, away_team)
                     if odds_data:
-                        logger.info(f"✓ Odds obtenidas para {home_team} vs {away_team}")
+                        logger.info(f"Real odds obtained for {home_team} vs {away_team} from {odds_data.get('bookmaker', 'bookmaker')}")
+                    else:
+                        logger.debug(f"No real odds available for {home_team} vs {away_team}")
                 except Exception as e:
-                    logger.warning(f"No se pudieron obtener odds: {e}")
+                    logger.warning(f"Error fetching real odds: {e}")
 
             # Generar predicciones
             predictions = self._generate_predictions(

@@ -131,7 +131,7 @@ Bot profesional con análisis multi-factorial ultra-potente.
 
     async def today_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Comando /hoy - Partidos de hoy"""
-        await update.message.reply_text("🔍 Buscando partidos de hoy...")
+        await update.message.reply_text("📅 *HOY - Análisis completo del día*\n\n🔍 Buscando partidos...")
 
         try:
             matches = self.analyzer.get_today_matches()
@@ -142,7 +142,9 @@ Bot profesional con análisis multi-factorial ultra-potente.
                 )
                 return
 
-            response = "⚽ *PARTIDOS DE HOY CON PREDICCIONES*\n\n"
+            response = "📅 *HOY - ANÁLISIS COMPLETO DEL DÍA*\n\n"
+            response += "Todos los partidos con predicciones multi-factoriales\n"
+            response += "━━━━━━━━━━━━━━━━━━━━━━\n\n"
 
             for idx, match in enumerate(matches[:10], 1):  # Máximo 10 partidos
                 response += f"*{idx}. {match['league']}*\n"
@@ -753,13 +755,14 @@ Ejemplos:
     async def fijini_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Comando /fijini - Top 3 locks de las próximas 48 horas"""
         await update.message.reply_text(
-            "🔍 *FIJINI 48HS - ANALIZANDO MERCADO...*\n\n"
-            "Buscando las 3 mejores apuestas (hoy + mañana):\n"
-            "• Analizando todos los partidos 📊\n"
-            "• Evaluando xG data ⚽\n"
-            "• Revisando momentum 🔥\n"
-            "• Checkeando H2H history ⚔️\n"
-            "• Calculando value bets 💰\n\n"
+            "🔥 *FIJINI 48HS - TOP 3 LOCKS (hoy + mañana)* 🔥\n\n"
+            "Analizando mercado completo próximas 48 horas...\n"
+            "Análisis ultra-potente con múltiples factores:\n"
+            "• xG (Expected Goals) real ⚽\n"
+            "• Forma y momentum reciente 🔥\n"
+            "• Head-to-Head histórico ⚔️\n"
+            "• Value bets con odds reales 💰\n"
+            "• Contexto (lesiones, química, estrategia) 📊\n\n"
             "_Esto puede tardar 30-90 segundos..._",
             parse_mode=ParseMode.MARKDOWN
         )
