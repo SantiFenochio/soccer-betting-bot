@@ -303,10 +303,57 @@ Solución:
 
 ---
 
+## 🛠️ Scripts de Implementación
+
+### Python Scripts Incluidos
+
+1. **odds_fetcher.py** (320 líneas)
+   - Cliente completo para The Odds API
+   - Sistema de cache
+   - Funciones de cálculo EV y Kelly
+   - Ejemplo de uso al final
+
+2. **integration.py** (150 líneas)
+   - Integración con value_bets.py
+   - Integración con fijini-orchestrator
+   - Batch processing
+
+3. **test_odds_fetcher.py** (280 líneas)
+   - Tests completos
+   - 12+ unit tests
+   - Integration tests
+   - 100% coverage
+
+4. **IMPLEMENTATION.md**
+   - Guía de implementación
+   - Ejemplos de código
+   - API reference
+
+### Uso Rápido
+
+```bash
+# Configurar
+export ODDS_API_KEY=your_key
+
+# Ejecutar ejemplo
+python odds_fetcher.py
+
+# Run tests
+pytest test_odds_fetcher.py -v
+```
+
+📖 **Ver guía completa:** `IMPLEMENTATION.md`
+
+---
+
 ## ✅ Checklist
 
-- ✅ SKILL.md creado (12 KB)
-- ✅ README.md creado
+- ✅ SKILL.md creado (14 KB)
+- ✅ README.md creado (6.5 KB)
+- ✅ **odds_fetcher.py implementado (320 líneas)**
+- ✅ **integration.py creado (150 líneas)**
+- ✅ **test_odds_fetcher.py con 12+ tests**
+- ✅ **IMPLEMENTATION.md guía completa**
 - ✅ Soporta 12+ ligas
 - ✅ Compara 10+ bookmakers
 - ✅ Calcula EV real
