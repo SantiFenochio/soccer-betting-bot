@@ -19,6 +19,8 @@ from telegram.ext import (
 from telegram.constants import ParseMode
 
 from analyzer import SoccerAnalyzer, format_prediction
+from database import Database
+from utils import normalize_team_name, parse_team_names, format_team_name
 
 # Configurar logging
 logging.basicConfig(
@@ -39,6 +41,7 @@ class SoccerBettingBot:
         """Inicializar bot"""
         self.token = token
         self.analyzer = SoccerAnalyzer()
+        self.db = Database()
         self.app = None
 
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -268,22 +271,22 @@ Bot profesional con análisis multi-factorial ultra-potente.
             return
 
         full_text = ' '.join(context.args)
-        teams = full_text.split(' vs ')
 
-        if len(teams) != 2:
-            teams = full_text.split(' VS ')
+        # Parsear y normalizar nombres de equipos
+        home_team, away_team = parse_team_names(full_text)
 
-        if len(teams) != 2:
+        if not home_team or not away_team:
             await update.message.reply_text(
                 "❌ Formato incorrecto. Usa: /partido [equipo1] vs [equipo2]"
             )
             return
 
-        home_team = teams[0].strip()
-        away_team = teams[1].strip()
+        # Formatear nombres para mostrar
+        home_display = format_team_name(home_team)
+        away_display = format_team_name(away_team)
 
         await update.message.reply_text(
-            f"🔍 Analizando {home_team} vs {away_team}..."
+            f"🔍 Analizando {home_display} vs {away_display}..."
         )
 
         try:
@@ -601,39 +604,35 @@ Ejemplos:
 
         full_text = ' '.join(context.args)
 
-        # Separar equipos
-        if ' vs ' in full_text.lower():
-            parts = full_text.split(' vs ')
-        elif ' VS ' in full_text:
-            parts = full_text.split(' VS ')
-        else:
-            await update.message.reply_text("❌ Formato incorrecto. Usa: /xg [equipo1] vs [equipo2]")
-            return
-
-        if len(parts) != 2:
-            await update.message.reply_text("❌ Formato incorrecto. Usa: /xg [equipo1] vs [equipo2]")
-            return
-
-        # Extraer equipos y liga
-        home_team = parts[0].strip()
-        away_part = parts[1].strip().split()
-
-        # Última palabra podría ser la liga
-        if len(away_part) > 1 and away_part[-1].upper() in ['EPL', 'BUNDESLIGA', 'LIGA', 'SERIE', 'LIGUE']:
-            away_team = ' '.join(away_part[:-1])
-            league = away_part[-1].upper()
-            if league == 'LIGA':
+        # Extraer liga si está al final
+        league = 'EPL'  # Default
+        words = full_text.split()
+        if words and words[-1].upper() in ['EPL', 'BUNDESLIGA', 'LIGA', 'SERIE', 'LIGUE']:
+            league_word = words[-1].upper()
+            if league_word == 'LIGA':
                 league = 'La Liga'
-            elif league == 'SERIE':
+            elif league_word == 'SERIE':
                 league = 'Serie A'
-            elif league == 'LIGUE':
+            elif league_word == 'LIGUE':
                 league = 'Ligue 1'
-        else:
-            away_team = ' '.join(away_part)
-            league = 'EPL'  # Default
+            else:
+                league = league_word
+            # Remover liga del texto para parsear equipos
+            full_text = ' '.join(words[:-1])
+
+        # Parsear y normalizar nombres de equipos
+        home_team, away_team = parse_team_names(full_text)
+
+        if not home_team or not away_team:
+            await update.message.reply_text("❌ Formato incorrecto. Usa: /xg [equipo1] vs [equipo2]")
+            return
+
+        # Formatear nombres para mostrar
+        home_display = format_team_name(home_team)
+        away_display = format_team_name(away_team)
 
         await update.message.reply_text(
-            f"📊 Analizando xG: {home_team} vs {away_team}..."
+            f"📊 Analizando xG: {home_display} vs {away_display}..."
         )
 
         try:
@@ -688,18 +687,19 @@ Ejemplos:
             return
 
         full_text = ' '.join(context.args)
-        teams = full_text.split(' vs ')
-        if len(teams) != 2:
-            teams = full_text.split(' VS ')
 
-        if len(teams) != 2:
+        # Parsear y normalizar nombres de equipos
+        home_team, away_team = parse_team_names(full_text)
+
+        if not home_team or not away_team:
             await update.message.reply_text("❌ Formato incorrecto")
             return
 
-        home_team = teams[0].strip()
-        away_team = teams[1].strip()
+        # Formatear nombres para mostrar
+        home_display = format_team_name(home_team)
+        away_display = format_team_name(away_team)
 
-        await update.message.reply_text(f"⚔️ Analizando historial: {home_team} vs {away_team}...")
+        await update.message.reply_text(f"⚔️ Analizando historial: {home_display} vs {away_display}...")
 
         try:
             from advanced_analysis import AdvancedAnalyzer
@@ -726,8 +726,14 @@ Ejemplos:
             )
             return
 
-        team_name = ' '.join(context.args)
-        await update.message.reply_text(f"📊 Analizando momentum de {team_name}...")
+        # Normalizar nombre del equipo
+        team_input = ' '.join(context.args)
+        team_name = normalize_team_name(team_input)
+
+        # Formatear para mostrar
+        team_display = format_team_name(team_name)
+
+        await update.message.reply_text(f"📊 Analizando momentum de {team_display}...")
 
         try:
             from advanced_analysis import AdvancedAnalyzer

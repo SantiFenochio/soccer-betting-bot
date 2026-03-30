@@ -6,7 +6,6 @@ Motor de predicciones avanzado con análisis real
 import logging
 from typing import Dict, List, Optional
 from datetime import datetime
-import random
 
 logger = logging.getLogger(__name__)
 
@@ -19,15 +18,24 @@ class PredictionEngine:
         self.api_manager = api_manager
         self.xg_analyzer = None
         self.value_bets_analyzer = None
+        self.data_fetcher = None
         self._init_analyzers()
 
     def _init_analyzers(self):
         """Inicializar analizadores avanzados"""
+        # Data Fetcher
+        try:
+            from data_fetcher import DataFetcher
+            self.data_fetcher = DataFetcher()
+            logger.info("Data Fetcher inicializado")
+        except Exception as e:
+            logger.warning(f"Data Fetcher no disponible: {e}")
+
         # xG Analyzer
         try:
             from xg_analyzer import xGAnalyzer
             self.xg_analyzer = xGAnalyzer()
-            logger.info("✓ xG Analyzer inicializado")
+            logger.info("xG Analyzer inicializado")
         except Exception as e:
             logger.warning(f"xG Analyzer no disponible: {e}")
 
@@ -35,7 +43,7 @@ class PredictionEngine:
         try:
             from value_bets import ValueBetsAnalyzer
             self.value_bets_analyzer = ValueBetsAnalyzer(self.api_manager)
-            logger.info("✓ Value Bets Analyzer inicializado")
+            logger.info("Value Bets Analyzer inicializado")
         except Exception as e:
             logger.warning(f"Value Bets Analyzer no disponible: {e}")
 
@@ -135,53 +143,22 @@ class PredictionEngine:
 
     def _analyze_team_strength(self, team_name: str, league: str = None) -> Dict:
         """
-        Analizar fortaleza del equipo
+        Analizar fortaleza del equipo usando DataFetcher
 
         Returns:
             Diccionario con métricas del equipo
         """
-        # Análisis basado en nombres de equipos conocidos
-        top_teams = {
-            # Selecciones TOP
-            'argentina': {'attack': 90, 'defense': 85, 'form': 88},
-            'brazil': {'attack': 88, 'defense': 82, 'form': 85},
-            'france': {'attack': 92, 'defense': 88, 'form': 90},
-            'england': {'attack': 85, 'defense': 83, 'form': 82},
-            'spain': {'attack': 87, 'defense': 85, 'form': 86},
-            'germany': {'attack': 86, 'defense': 84, 'form': 84},
-            'netherlands': {'attack': 84, 'defense': 80, 'form': 83},
-            'portugal': {'attack': 85, 'defense': 78, 'form': 82},
-            'belgium': {'attack': 83, 'defense': 79, 'form': 80},
-            'italy': {'attack': 80, 'defense': 88, 'form': 81},
-            'colombia': {'attack': 82, 'defense': 78, 'form': 80},
-            'uruguay': {'attack': 81, 'defense': 82, 'form': 79},
-            'mexico': {'attack': 75, 'defense': 72, 'form': 74},
-            'usa': {'attack': 73, 'defense': 70, 'form': 72},
-            'chile': {'attack': 74, 'defense': 73, 'form': 71},
+        # Si DataFetcher está disponible, usarlo
+        if self.data_fetcher:
+            return self.data_fetcher.get_team_strength(team_name, league)
 
-            # Clubes TOP
-            'manchester city': {'attack': 95, 'defense': 88, 'form': 92},
-            'real madrid': {'attack': 93, 'defense': 85, 'form': 90},
-            'barcelona': {'attack': 90, 'defense': 82, 'form': 88},
-            'bayern munich': {'attack': 92, 'defense': 86, 'form': 89},
-            'liverpool': {'attack': 89, 'defense': 84, 'form': 87},
-            'arsenal': {'attack': 87, 'defense': 85, 'form': 86},
-            'inter milan': {'attack': 85, 'defense': 88, 'form': 84},
-            'psg': {'attack': 88, 'defense': 80, 'form': 83},
-        }
-
-        team_lower = team_name.lower()
-
-        # Buscar equipo conocido
-        for known_team, stats in top_teams.items():
-            if known_team in team_lower or team_lower in known_team:
-                return stats
-
-        # Equipo desconocido - estimación base
+        # Fallback si DataFetcher no está disponible
+        # Valores predeterminados conservadores
+        logger.warning(f"DataFetcher not available, using default values for {team_name}")
         return {
-            'attack': random.randint(65, 80),
-            'defense': random.randint(65, 80),
-            'form': random.randint(65, 80)
+            'attack': 72,
+            'defense': 72,
+            'form': 72
         }
 
     def _generate_predictions(self, home_team: str, away_team: str,
