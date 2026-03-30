@@ -19,7 +19,6 @@ from telegram.ext import (
 from telegram.constants import ParseMode
 
 from analyzer import SoccerAnalyzer, format_prediction
-from database import DatabaseManager
 
 # Configurar logging
 logging.basicConfig(
@@ -40,7 +39,6 @@ class SoccerBettingBot:
         """Inicializar bot"""
         self.token = token
         self.analyzer = SoccerAnalyzer()
-        self.db = DatabaseManager()
         self.app = None
 
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -48,51 +46,38 @@ class SoccerBettingBot:
         user = update.effective_user
         chat_id = update.effective_chat.id
 
-        # Guardar usuario en DB
-        self.db.save_user(chat_id, {
-            'username': user.username,
-            'first_name': user.first_name,
-            'last_name': user.last_name,
-            'subscribed': True
-        })
-
         welcome_message = f"""
 ⚽ *¡Bienvenido al Bot de Análisis de Fútbol PRO!* ⚽
 
 Hola {user.first_name}! 👋
 
-Bot profesional con análisis avanzado y gestión de bankroll.
+Bot profesional con análisis multi-factorial ultra-potente.
 
 🎯 *Tu Chat ID:* `{chat_id}`
 
-🔥 *NUEVAS CARACTERÍSTICAS:*
-🎯 /fijini - TOP 3 LOCKS DEL DÍA (NUEVO!)
+🔥 *ANÁLISIS ULTRA-POTENTE:*
+🎯 /fijini - TOP 3 LOCKS (próximas 48hs)
+📅 /hoy - Análisis completo del día
 📊 Análisis xG (Expected Goals) real
 💰 Sistema de Value Bets automático
-📈 Gestión de Bankroll profesional
 ⚔️ Head-to-Head histórico
 🔥 Análisis de Momentum/Rachas
-✅ Predicciones con +65% precisión
+✅ Predicciones con +67% precisión
 
 📋 *Comandos principales:*
-🔥 `/fijini` - ¡COMIENZA AQUÍ! Top 3 del día
-🎯 `/hoy` - Partidos de hoy
+🔥 `/fijini` - ¡COMIENZA AQUÍ! Top 3 próximas 48hs
+🎯 `/hoy` - Todos los partidos del día
 ⚽ `/partido [equipo1] vs [equipo2]` - Predicción completa
 📊 `/xg [equipo1] vs [equipo2]` - Análisis xG
 ⚔️ `/h2h [equipo1] vs [equipo2]` - Histórico
 🔥 `/momentum [equipo]` - Racha actual
 
-💰 *Gestión de Bankroll:*
-💵 `/bankroll 1000` - Configurar bankroll
-📊 `/balance` - Ver ROI y stats
-🎲 `/apostar` - Registrar apuesta
-📜 `/historial` - Ver apuestas
-
 📚 `/help` - Ver todos los comandos
+🏆 `/ligas` - Ligas disponibles
 
 ⚠️ *Apuesta responsablemente* 🎲
 
-¡Empezá con /hoy o /help! 🔥
+¡Empezá con /fijini o /hoy! 🔥
         """
 
         await update.message.reply_text(
@@ -105,26 +90,20 @@ Bot profesional con análisis avanzado y gestión de bankroll.
         help_text = """
 📖 *Guía de Comandos*
 
-🔥 *NUEVO - LOCKS DEL DÍA:*
-/fijini - Top 3 mejores apuestas del día
-   _Análisis completo del mercado con múltiples factores_
+🔥 *COMANDOS PRINCIPALES:*
+/fijini - Top 3 locks próximas 48hs (hoy + mañana)
+   _Análisis ultra-potente con 11 skills integradas_
+
+/hoy - Análisis completo de todos los partidos del día
+   _Predicciones profesionales con scoring multi-factorial_
 
 🎯 *Análisis de partidos:*
-/hoy - Partidos de hoy con predicciones
-/proximos 3 - Partidos de los próximos 3 días
 /partido [equipo1] vs [equipo2] - Predicción completa
 /xg [equipo1] vs [equipo2] - Análisis xG (Expected Goals)
 /h2h [equipo1] vs [equipo2] - Head-to-Head histórico
 /momentum [equipo] - Racha y forma actual
 /analizar [equipo] - Estadísticas del equipo
 /selecciones [país1] vs [país2] - Predicción de selecciones
-
-💰 *Gestión de Bankroll:*
-/bankroll 1000 - Configurar bankroll inicial
-/balance - Ver estado actual y ROI
-/apostar - Registrar una apuesta
-/historial - Ver últimas apuestas
-/liquidar [id] [won/lost] - Marcar resultado
 
 📊 *Información:*
 /tendencias - Patrones estadísticos confiables
@@ -136,12 +115,11 @@ Bot profesional con análisis avanzado y gestión de bankroll.
 
 💡 *Ejemplos:*
 • `/fijini` - ¡COMIENZA AQUÍ! 🔥
+• `/hoy` - Ver partidos de hoy
 • `/partido Barcelona vs Real Madrid`
-• `/xg Manchester City vs Liverpool EPL`
+• `/xg Manchester City vs Liverpool`
 • `/h2h Real Madrid vs Barcelona`
 • `/momentum Arsenal`
-• `/bankroll 1000`
-• `/balance`
 
 ⚠️ Apuesta responsablemente!
         """
@@ -766,139 +744,6 @@ Ejemplos:
             logger.error(f"Error en /momentum: {e}")
             await update.message.reply_text("❌ Error al analizar momentum")
 
-    async def bankroll_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /bankroll - Configurar bankroll inicial"""
-        if not context.args:
-            await update.message.reply_text(
-                "💰 *GESTIÓN DE BANKROLL*\n\n"
-                "Configura tu bankroll para tracking profesional.\n\n"
-                "*Uso:* `/bankroll [monto]`\n"
-                "*Ejemplo:* `/bankroll 1000`\n\n"
-                "Esto te permitirá:\n"
-                "✅ Registrar apuestas\n"
-                "✅ Calcular ROI automáticamente\n"
-                "✅ Ver estadísticas detalladas\n"
-                "✅ Gestión con Kelly Criterion",
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return
-
-        try:
-            amount = float(context.args[0])
-            if amount <= 0:
-                await update.message.reply_text("❌ El monto debe ser mayor a 0")
-                return
-
-            from bankroll_manager import BankrollManager
-            manager = BankrollManager()
-
-            user_id = update.effective_chat.id
-            success = manager.set_bankroll(user_id, amount, 'USD')
-
-            if success:
-                await update.message.reply_text(
-                    f"✅ *Bankroll configurado!*\n\n"
-                    f"💰 Monto inicial: ${amount:.2f}\n\n"
-                    f"Ahora puedes:\n"
-                    f"• `/balance` - Ver estado actual\n"
-                    f"• `/apostar` - Registrar apuestas\n"
-                    f"• `/historial` - Ver histórico",
-                    parse_mode=ParseMode.MARKDOWN
-                )
-            else:
-                await update.message.reply_text("❌ Error configurando bankroll")
-
-        except ValueError:
-            await update.message.reply_text("❌ Monto inválido. Usa números.")
-        except Exception as e:
-            logger.error(f"Error en /bankroll: {e}")
-            await update.message.reply_text("❌ Error al configurar bankroll")
-
-    async def balance_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /balance - Ver estado actual del bankroll"""
-        try:
-            from bankroll_manager import BankrollManager
-            manager = BankrollManager()
-
-            user_id = update.effective_chat.id
-            stats = manager.get_user_stats(user_id)
-
-            if 'error' in stats:
-                await update.message.reply_text(
-                    "❌ No tienes bankroll configurado.\n"
-                    "Usa `/bankroll [monto]` para empezar.\n"
-                    "Ejemplo: `/bankroll 1000`",
-                    parse_mode=ParseMode.MARKDOWN
-                )
-                return
-
-            formatted = manager.format_stats_for_telegram(stats)
-            await update.message.reply_text(formatted, parse_mode=ParseMode.MARKDOWN)
-
-        except Exception as e:
-            logger.error(f"Error en /balance: {e}")
-            await update.message.reply_text("❌ Error al obtener balance")
-
-    async def bet_register_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /apostar - Registrar apuesta"""
-        await update.message.reply_text(
-            "🎲 *REGISTRAR APUESTA*\n\n"
-            "*Formato:*\n"
-            "`/apostar [partido] | [tipo] | [predicción] | [stake] | [odds] | [confianza]`\n\n"
-            "*Ejemplo:*\n"
-            "`/apostar Barcelona vs Madrid | Goles | Over 2.5 | 50 | 1.85 | 80`\n\n"
-            "*Campos:*\n"
-            "• Partido: Descripción\n"
-            "• Tipo: Resultado/Goles/BTTS/etc\n"
-            "• Predicción: Lo que apostaste\n"
-            "• Stake: Monto apostado\n"
-            "• Odds: Cuota decimal\n"
-            "• Confianza: 0-100 (opcional)",
-            parse_mode=ParseMode.MARKDOWN
-        )
-
-    async def bet_history_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /historial - Ver últimas apuestas"""
-        try:
-            from bankroll_manager import BankrollManager
-            manager = BankrollManager()
-
-            user_id = update.effective_chat.id
-            history = manager.get_bet_history(user_id, limit=10)
-
-            if not history:
-                await update.message.reply_text("📝 No tienes apuestas registradas aún.")
-                return
-
-            msg = "📜 *HISTORIAL DE APUESTAS* (Últimas 10)\n\n"
-
-            for bet in history:
-                status_emoji = {
-                    'won': '✅',
-                    'lost': '❌',
-                    'pending': '⏳',
-                    'void': '⚪',
-                    'push': '➖'
-                }.get(bet['status'], '❓')
-
-                msg += f"*ID {bet['id']}* {status_emoji}\n"
-                msg += f"   {bet['match_description']}\n"
-                msg += f"   {bet['prediction']} @ {bet['odds']}\n"
-                msg += f"   Stake: ${bet['stake']:.2f}\n"
-
-                if bet['status'] != 'pending':
-                    pl = bet['profit_loss']
-                    pl_text = f"+${pl:.2f}" if pl > 0 else f"${pl:.2f}"
-                    msg += f"   P/L: {pl_text}\n"
-
-                msg += "\n"
-
-            await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
-
-        except Exception as e:
-            logger.error(f"Error en /historial: {e}")
-            await update.message.reply_text("❌ Error al obtener historial")
-
     async def fijini_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Comando /fijini - Top 3 locks de las próximas 48 horas"""
         await update.message.reply_text(
@@ -1010,12 +855,6 @@ Ejemplos:
         self.app.add_handler(CommandHandler("stats", self.stats_command))
         self.app.add_handler(CommandHandler("ligas", self.leagues_command))
         self.app.add_handler(CommandHandler("suscribir", self.subscribe_command))
-
-        # Bankroll Management Commands
-        self.app.add_handler(CommandHandler("bankroll", self.bankroll_command))
-        self.app.add_handler(CommandHandler("balance", self.balance_command))
-        self.app.add_handler(CommandHandler("apostar", self.bet_register_command))
-        self.app.add_handler(CommandHandler("historial", self.bet_history_command))
 
         # Daily Locks Command
         self.app.add_handler(CommandHandler("fijini", self.fijini_command))

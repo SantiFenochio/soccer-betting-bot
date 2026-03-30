@@ -1,6 +1,11 @@
 """
 Scheduler
 Sistema de notificaciones automáticas
+
+⚠️ NOTA: Este módulo está parcialmente deshabilitado en la versión simplificada del bot.
+La versión simplificada se enfoca en comandos manuales (/fijini, /hoy) sin sistema de
+notificaciones automáticas. Para habilitar, se requiere reinstalar database.py y
+configurar manualmente los chat IDs de usuarios suscritos.
 """
 
 import os
@@ -16,19 +21,23 @@ from telegram.constants import ParseMode
 from dotenv import load_dotenv
 
 from analyzer import SoccerAnalyzer
-from database import DatabaseManager
+# from database import DatabaseManager  # DESHABILITADO - Ver versión simplificada
 
 logger = logging.getLogger(__name__)
 
 
 class NotificationScheduler:
-    """Gestor de notificaciones automáticas"""
+    """Gestor de notificaciones automáticas
+
+    NOTA: Este módulo está parcialmente deshabilitado en la versión simplificada.
+    Las notificaciones requieren configuración manual de chat IDs.
+    """
 
     def __init__(self, bot_token: str):
         """Inicializar scheduler"""
         self.bot = Bot(token=bot_token)
         self.analyzer = SoccerAnalyzer()
-        self.db = DatabaseManager()
+        # self.db = DatabaseManager()  # DESHABILITADO
         self.min_confidence = int(os.getenv('MIN_CONFIDENCE', '70'))
 
     async def send_daily_predictions(self):

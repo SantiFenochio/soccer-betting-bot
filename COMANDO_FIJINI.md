@@ -1,8 +1,8 @@
-# 🔥 COMANDO /fijini - LOCKS DEL DÍA
+# 🔥 COMANDO /fijini - TOP 3 LOCKS (próximas 48hs)
 
 ## ¿Qué es /fijini?
 
-**El comando más poderoso del bot.** Analiza TODO el mercado del día y te da las **3 mejores apuestas** con mayor probabilidad de éxito.
+**El comando más poderoso del bot.** Analiza TODO el mercado de las próximas 48 horas (hoy + mañana) y te da las **3 mejores apuestas** con mayor probabilidad de éxito usando **11 skills especializadas**.
 
 ---
 
@@ -10,8 +10,8 @@
 
 Cuando ejecutas `/fijini`, el bot:
 
-1. 📊 **Obtiene TODOS los partidos del día** (de todas las ligas disponibles)
-2. 🔍 **Analiza cada partido** con 5 factores:
+1. 📊 **Obtiene TODOS los partidos de las próximas 48 horas** (hoy + mañana, todas las ligas)
+2. 🔍 **Analiza cada partido** con 11 skills integradas y 5 factores principales:
    - ✅ Confianza base del modelo (30 puntos)
    - 🔥 Forma/Momentum reciente (20 puntos)
    - ⚽ Expected Goals (xG) real (20 puntos)
@@ -40,10 +40,11 @@ Es SÚPER simple:
 ### Ejemplo de respuesta:
 
 ```
-🔥 FIJINI - TOP 3 LOCKS DEL DÍA 🔥
+🔥 FIJINI 48HS - TOP 3 LOCKS (hoy + mañana) 🔥
 
-Las 3 mejores apuestas con mayor probabilidad de éxito
-Análisis multi-factorial: xG + Form + H2H + Value
+Las 3 mejores apuestas de las próximas 48 horas
+Análisis ultra-potente con 11 skills integradas
+xG + Form + H2H + Value + Injuries + Chemistry + Strategy
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -52,7 +53,8 @@ Análisis multi-factorial: xG + Form + H2H + Value
 
 ⚽ Partido: Manchester City vs Sheffield United
 🏆 Liga: Premier League 🏴󠁧󠁢󠁥󠁮󠁧󠁿
-🕐 Hora: 15:00hs
+📅 Fecha: Hoy 30 de Marzo
+🕐 Hora: 15:00hs (en 2 horas)
 
 🎯 APUESTA RECOMENDADA:
    💡 Victoria Manchester City
@@ -80,7 +82,8 @@ Análisis multi-factorial: xG + Form + H2H + Value
 
 ⚽ Partido: Barcelona vs Real Madrid
 🏆 Liga: La Liga 🇪🇸
-🕐 Hora: 21:00hs
+📅 Fecha: Mañana 31 de Marzo
+🕐 Hora: 21:00hs (en 32 horas)
 
 🎯 APUESTA RECOMENDADA:
    💡 Over 2.5 goles
@@ -108,12 +111,13 @@ Análisis multi-factorial: xG + Form + H2H + Value
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 📊 METODOLOGÍA:
-Análisis basado en 5 factores:
-• Confianza base del modelo
-• Forma/momentum reciente
-• Expected Goals (xG)
-• Historial head-to-head
-• Expected Value (EV)
+Análisis basado en 11 skills integradas:
+• fijini-orchestrator (orquestación)
+• understat-xg-integrator (xG real)
+• full-odds-multi-bookmaker (odds)
+• football-data, sports-betting-analyzer
+• player-comparison, injury-tracker
+• team-chemistry, game-strategy, scouting
 
 ⭐ RATING:
 ⭐⭐⭐⭐⭐ = Lock máximo (90+)
@@ -121,9 +125,9 @@ Análisis basado en 5 factores:
 ⭐⭐⭐ = Confiable (75+)
 
 💡 RECOMENDACIÓN:
-• Locks con 4-5⭐ → Apuesta con confianza
-• Locks con 3⭐ → Apuesta moderada
-• Usar Kelly Criterion para stakes
+• Locks con 4-5⭐ → Apuestas con máxima confianza
+• Locks con 3⭐ → Apuestas moderadas
+• Análisis ultra-potente con múltiples fuentes
 
 ⚠️ Ninguna predicción es 100% segura.
 ⚠️ Apuesta responsablemente.
@@ -199,8 +203,8 @@ Si **3 o más factores** tienen score alto (≥15), se otorgan **+10 puntos bonu
 ```
 Score: 90-100
 Confianza: Muy alta
-Acción: APOSTAR con confianza
-Stake: 3-5% del bankroll (Kelly)
+Acción: APOSTAR con máxima confianza
+Recomendación: Apuesta principal del día
 ```
 
 **Significa:**
@@ -213,8 +217,8 @@ Stake: 3-5% del bankroll (Kelly)
 ```
 Score: 80-89
 Confianza: Alta
-Acción: APOSTAR moderadamente
-Stake: 2-3% del bankroll
+Acción: APOSTAR con confianza
+Recomendación: Apuesta fuerte
 ```
 
 **Significa:**
@@ -227,8 +231,8 @@ Stake: 2-3% del bankroll
 ```
 Score: 75-79
 Confianza: Media-Alta
-Acción: Apuesta pequeña o skip
-Stake: 1-2% del bankroll
+Acción: Apuesta moderada
+Recomendación: Evaluar cuidadosamente
 ```
 
 **Significa:**
@@ -246,34 +250,31 @@ Stake: 1-2% del bankroll
 **Mañana (9-10 AM):**
 ```
 1. /fijini
-   → Ver locks del día
+   → Ver top 3 locks de las próximas 48hs
 
 2. Evaluar cada lock:
-   - ⭐⭐⭐⭐⭐ → Apostar SÍ
-   - ⭐⭐⭐⭐ → Apostar probablemente
-   - ⭐⭐⭐ → Evaluar más
+   - ⭐⭐⭐⭐⭐ → Apostar SÍ (máxima confianza)
+   - ⭐⭐⭐⭐ → Apostar probablemente (alta confianza)
+   - ⭐⭐⭐ → Evaluar más (confianza moderada)
 
 3. Para locks de 4-5⭐:
    /partido [equipo1] vs [equipo2]
    → Confirmar con análisis detallado
 
-4. Registrar apuestas:
-   /apostar [detalles]
+   /xg [equipo1] vs [equipo2]
+   → Verificar con datos xG
 ```
 
 **Tarde (5-6 PM):**
 ```
-/balance
-→ Ver cómo van tus apuestas
+/hoy
+→ Ver actualización de partidos del día
 ```
 
-**Noche (10-11 PM):**
+**Noche (antes de dormir):**
 ```
-/liquidar [id] [won/lost]
-→ Cerrar apuestas del día
-
-/balance
-→ Ver resultados
+/fijini
+→ Revisar locks para mañana
 ```
 
 ---
@@ -283,17 +284,17 @@ Stake: 1-2% del bankroll
 ### ❌ NO es una garantía
 - Ninguna predicción es 100% segura
 - Incluso locks de 5⭐ pueden fallar
-- Usa gestión de bankroll SIEMPRE
+- Usa gestión responsable SIEMPRE
 
 ### ❌ NO sustituye tu análisis
-- Úsalo como GUÍA, no como verdad absoluta
+- Úsalo como GUÍA profesional, no como verdad absoluta
 - Combina con tu conocimiento
 - Verifica los factores que muestra
 
-### ❌ NO significa apostar todo
-- Sigue Kelly Criterion
-- Nunca más del 5% en una apuesta
-- Diversifica si hay múltiples locks
+### ❌ NO significa apostar a todo
+- Evalúa cada lock individualmente
+- Considera el contexto y timing
+- Prioriza calidad sobre cantidad
 
 ---
 
@@ -339,9 +340,9 @@ Razón: Odds más estables, análisis completo disponible
 ### 3. Gestión de múltiples locks
 ```
 Si hay 3 locks de 4-5⭐:
-• NO apostar todo a los 3
-• Elegir el de mayor score
-• O distribuir: 3% + 2% + 1%
+• Evaluar cuáles tienen mejor timing (hoy primero)
+• Elegir el de mayor score si son similares
+• Considerar priorizar locks de hoy vs mañana
 ```
 
 ### 4. Días sin locks
@@ -358,16 +359,16 @@ Si /fijini no encuentra locks buenos:
 
 | Comando | Uso | Cuándo usar |
 |---------|-----|-------------|
-| `/fijini` | **Top 3 del DÍA completo** | Todas las mañanas |
-| `/hoy` | Todos los partidos con predicciones | Ver panorama general |
-| `/partido` | UN partido específico | Ya sabes qué partido analizar |
+| `/fijini` | **Top 3 próximas 48hs (hoy + mañana)** | Todas las mañanas y noches |
+| `/hoy` | Todos los partidos del día | Ver panorama completo del día |
+| `/partido` | UN partido específico | Análisis profundo |
 | `/xg` | Análisis xG profundo | Confirmar locks |
 | `/h2h` | Historial específico | Clásicos importantes |
 | `/momentum` | Forma de UN equipo | Verificar racha |
 
 **Flujo recomendado:**
 ```
-/fijini → /partido [lock] → /xg [lock] → Apostar
+/fijini → /partido [lock] → /xg [lock] → Decisión informada
 ```
 
 ---
@@ -394,8 +395,8 @@ Este comando está basado en metodologías de:
 
 ### P: ¿Cuántas veces al día puedo usar /fijini?
 **R:** Todas las veces que quieras. Pero típicamente:
-- 1 vez en la mañana (ver locks del día)
-- 1 vez al mediodía (si hay partidos tarde)
+- 1 vez en la mañana (ver locks de hoy y mañana)
+- 1 vez en la noche (revisar locks para mañana)
 - No cambiar decisiones constantemente
 
 ### P: ¿Qué hago si no hay locks de 4-5 estrellas?
@@ -423,16 +424,17 @@ Este comando está basado en metodologías de:
 `/fijini` es tu **arma secreta** para encontrar las mejores apuestas del día sin tener que analizar 50+ partidos manualmente.
 
 ### Ventajas:
-✅ Análisis multi-factorial automático
+✅ Análisis ultra-potente con 11 skills integradas
+✅ Cobertura de 48 horas (hoy + mañana)
 ✅ Ahorra horas de research
 ✅ Basado en metodologías profesionales
 ✅ Scores objetivos (no subjetivos)
 ✅ Rating claro con estrellas
 
 ### Recuerda:
-⚠️ Usa gestión de bankroll
+⚠️ Usa gestión responsable
 ⚠️ No todas las apuestas ganan
-⚠️ Es una GUÍA, no una garantía
+⚠️ Es una GUÍA profesional, no una garantía
 ⚠️ Combina con tu análisis
 
 ---

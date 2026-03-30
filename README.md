@@ -1,45 +1,45 @@
 # ⚽ Soccer Betting Analysis Bot
 
-Bot de Telegram profesional que analiza datos de fútbol con IA y envía predicciones basadas en análisis multi-factorial.
+Bot de Telegram profesional ultra-potente con análisis multi-factorial usando 11 skills especializadas de IA.
 
 ## 🎯 Características
 
-- **Análisis multi-factorial avanzado** con sistema de scoring de 100 puntos
-- **Predicciones basadas en 5 factores**: Confianza base, Forma/Momentum, xG real, H2H, Value Bets
-- **8 Skills de IA especializadas** que trabajan automáticamente
-- **Expected Goals (xG)** con datos reales de Understat
-- **Value Betting** con cálculo de Expected Value y Kelly Criterion
-- **Bankroll Management** con tracking de ROI y estadísticas
-- **Comando /fijini**: Top 3 mejores apuestas del día automáticas
+- **🔥 /fijini** - TOP 3 LOCKS próximas 48hs (hoy + mañana)
+- **📅 /hoy** - Análisis completo de todos los partidos del día
+- **Análisis ultra-potente** con 11 skills integradas de IA
+- **Sistema de scoring de 100 puntos** con 5 factores principales
+- **Expected Goals (xG)** con datos REALES de Understat/FBref
+- **Odds de 10+ bookmakers** con cálculo de Expected Value
+- **Análisis multi-dimensional**: xG + Form + H2H + Value + Injuries + Chemistry + Strategy
 - **Notificaciones por Telegram** con recomendaciones diarias
 - **Comandos interactivos** para análisis profundo
 
-## 🤖 Arquitectura de IA: Lead Agent + Skills
+## 🤖 Arquitectura de IA: 11 Skills Integradas
 
-El bot usa una **arquitectura orquestada** con un lead agent coordinando múltiples skills:
+El bot usa una **arquitectura orquestada ultra-potente** con 11 skills especializadas:
 
-### 🔥 Lead Agent
-- **fijini-orchestrator** - Orquestador principal que coordina todo el análisis multi-factorial del comando `/fijini`
+### 🔥 Lead Agent (1)
+- **fijini-orchestrator** - Orquestador principal que coordina análisis multi-factorial para `/fijini`
 
 ### ⚽ Data Providers (3)
-- **understat-xg-integrator** - Obtiene datos xG REALES de Understat/FBref (no estimados)
+- **understat-xg-integrator** - Datos xG REALES de Understat/FBref (no estimados)
 - **full-odds-multi-bookmaker** - Odds reales de 10+ bookmakers (Bet365, Pinnacle, etc.)
-- **football-data** ⚽ - 16 skills de datos de fútbol en tiempo real
+- **football-data** ⚽ - 16 sub-skills de datos de fútbol en tiempo real
 
 ### 🔧 Analyzer Skills (7 especializadas)
 - **sports-betting-analyzer** 🎲 - Identificación de value bets profesional
-- **player-comparison-tool** 👥 - Comparación estadística de jugadores
+- **player-comparison-tool** 👥 - Comparación estadística de jugadores clave
 - **injury-report-tracker** 🏥 - Monitor de lesiones y análisis de impacto
-- **team-chemistry-evaluator** 🤝 - Evaluación de dinámica de equipos
+- **team-chemistry-evaluator** 🤝 - Evaluación de cohesión y dinámica
 - **game-strategy-simulator** 🎮 - Simulación de tácticas y estrategias
-- **scouting-report-builder** 📊 - Reportes de scouting automáticos
+- **scouting-report-builder** 📊 - Reportes de scouting completos
 
-### ⚡ Subagentes Paralelos
+### ⚡ Análisis Paralelo
 El fijini-orchestrator lanza **4 subagentes en paralelo** para máxima velocidad:
-1. Data Fetcher - Obtiene todos los partidos del día
-2. xG Analyzer - Analiza Expected Goals
-3. Value Detector - Calcula Expected Value
-4. Context Analyzer - Evalúa forma, H2H, lesiones
+1. **Data Fetcher** - Obtiene todos los partidos de próximas 48hs
+2. **xG Analyzer** - Analiza Expected Goals reales
+3. **Value Detector** - Calcula Expected Value de odds
+4. **Context Analyzer** - Evalúa forma, H2H, lesiones, química, táctica
 
 📖 **Ver documentación completa:** [SKILLS_INTEGRADAS.md](SKILLS_INTEGRADAS.md)
 
@@ -96,22 +96,20 @@ Ver guía completa: [INSTALL.md](INSTALL.md)
 
 ## 💬 Comandos del Bot
 
-### 🔥 Comandos Principales
-- **`/fijini`** - 🏆 TOP 3 mejores apuestas del día (análisis completo del mercado)
-- **`/partido [equipo1] vs [equipo2]`** - Análisis completo de partido específico
-- **`/hoy`** - Todos los partidos y predicciones del día
+### 🔥 Comandos Principales (Ultra-Potentes)
+- **`/fijini`** - 🏆 TOP 3 LOCKS próximas 48hs (hoy + mañana)
+  - Análisis ultra-potente con 11 skills integradas
+  - Sistema de scoring de 100 puntos
+  - Las 3 mejores apuestas del mercado
+- **`/hoy`** - 📅 Análisis completo de todos los partidos del día
+  - Predicciones con scoring profesional
+  - Recomendaciones claras con confianza %
 
-### 📊 Análisis Avanzado
+### 📊 Análisis Específico
+- **`/partido [equipo1] vs [equipo2]`** - Análisis completo de un partido
 - **`/xg [equipo1] vs [equipo2]`** - Análisis Expected Goals con datos reales
 - **`/h2h [equipo1] vs [equipo2]`** - Historial Head-to-Head últimos 5 partidos
 - **`/momentum [equipo]`** - Análisis de forma y racha actual
-
-### 💰 Bankroll Management
-- **`/bankroll`** - Configurar/ver tu bankroll
-- **`/balance`** - Ver estadísticas y ROI
-- **`/apostar [detalles]`** - Registrar una apuesta
-- **`/historial`** - Ver historial completo de apuestas
-- **`/liquidar [id] [won/lost]`** - Liquidar apuesta
 
 ### ℹ️ Información
 - **`/start`** - Iniciar el bot y obtener tu chat ID
@@ -178,25 +176,21 @@ Ver guía completa: [INSTALL.md](INSTALL.md)
 - ✅ injury-report-tracker: Monitor de lesiones automático
 - ✅ Mejoras automáticas en todos los comandos
 
-### 🏆 Mejora #4: Comando /fijini
-- ✅ Analiza TODO el mercado del día automáticamente
-- ✅ Sistema multi-factorial de 100 puntos
+### 🏆 Mejora #4: Comando /fijini Ultra-Potente
+- ✅ Analiza próximas 48 horas (hoy + mañana) automáticamente
+- ✅ Sistema multi-factorial de 100 puntos con 11 skills
 - ✅ Top 3 mejores apuestas con rating de estrellas
-- ✅ Considera: confianza, forma, xG, H2H, value bets
+- ✅ Considera: confianza, forma, xG real, H2H, value bets, injuries, chemistry, strategy
 - ✅ Bonus de consistencia cuando 3+ factores son altos
+- ✅ Prioriza partidos de hoy vs mañana inteligentemente
 
-### 💰 Mejora #3: Bankroll Management Completo
-- ✅ Sistema de tracking con base de datos SQLite
-- ✅ Registro y liquidación de apuestas
-- ✅ Estadísticas: ROI, win rate, profit/loss
-- ✅ Historial completo con filtros
-- ✅ Kelly Criterion para sizing óptimo
-
-### 📊 Mejora #2: Análisis Avanzado
-- ✅ Expected Goals (xG) con datos reales de Understat
-- ✅ Value Betting con cálculo de Expected Value
+### 📊 Mejora #3: Análisis Avanzado Multi-Dimensional
+- ✅ Expected Goals (xG) con datos REALES de Understat/FBref
+- ✅ Value Betting con cálculo de Expected Value real
+- ✅ Odds de 10+ bookmakers comparadas en tiempo real
 - ✅ Head-to-Head últimos 5 enfrentamientos
-- ✅ Momentum y análisis de racha
+- ✅ Momentum y análisis de racha profesional
+- ✅ Análisis de lesiones, química de equipo, táctica
 - ✅ Detección de arbitraje (surebets)
 
 ### 🌍 Mejora #1: Partidos Internacionales

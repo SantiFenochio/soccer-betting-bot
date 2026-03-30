@@ -618,7 +618,8 @@ class DailyLocksAnalyzer:
                 "⚠️ No forzar apuestas sin confianza alta es lo más inteligente."
             )
 
-        msg = "🔥 *FIJINI 48HS V2.0 - TOP 3 LOCKS* 🔥\n\n"
+        msg = "🔥 *FIJINI 48HS - TOP 3 LOCKS (hoy + mañana)* 🔥\n\n"
+        msg += "_Análisis ultra-potente con 11 skills integradas_\n"
         msg += "_Sistema expandido a 150 pts: 8 factores + bonus_\n"
         msg += "_Las 3 mejores apuestas de las próximas 48 horas_\n\n"
         msg += "━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
@@ -712,9 +713,9 @@ class DailyLocksAnalyzer:
         msg += "⭐⭐⭐ = Confiable (105-119 pts)\n\n"
 
         msg += "💡 *RECOMENDACIÓN:*\n"
-        msg += "• Locks con 4-5⭐ → Apuesta con confianza\n"
-        msg += "• Locks con 3⭐ → Apuesta moderada\n"
-        msg += "• Usar Kelly Criterion para stakes\n\n"
+        msg += "• Locks con 4-5⭐ → Apuestas con máxima confianza\n"
+        msg += "• Locks con 3⭐ → Apuestas moderadas\n"
+        msg += "• Análisis basado en 11 skills especializadas\n\n"
 
         msg += "⚠️ _Ninguna predicción es 100% segura._\n"
         msg += "⚠️ _Apuesta responsablemente._"

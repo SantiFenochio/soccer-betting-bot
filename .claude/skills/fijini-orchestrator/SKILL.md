@@ -27,7 +27,11 @@ description: Lead agent para /fijini. Orquesta football-data, understat-xg-integ
 - Acceso a understat-xg-integrator
 - Acceso a full-odds-multi-bookmaker
 - Acceso a sports-betting-analyzer
-- Acceso a bankroll-manager (opcional, para stakes)
+- Acceso a player-comparison-tool
+- Acceso a injury-report-tracker
+- Acceso a team-chemistry-evaluator
+- Acceso a game-strategy-simulator
+- Acceso a scouting-report-builder
 
 ---
 
@@ -243,10 +247,11 @@ def assign_stars(total_score):
 ## 📤 Output Format (Telegram Professional - 48 Horas)
 
 ```markdown
-🔥 **FIJINI 48HS - TOP 3 MEJORES APUESTAS** 🔥
+🔥 **FIJINI 48HS - TOP 3 LOCKS (hoy + mañana)** 🔥
 
 Las 3 mejores apuestas de las próximas 48 horas
-Análisis multi-factorial: xG + Form + H2H + Value + Injuries
+Análisis ultra-potente con 11 skills integradas
+xG + Form + H2H + Value + Injuries + Chemistry + Strategy + Scouting
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -337,11 +342,6 @@ Análisis multi-factorial: xG + Form + H2H + Value + Injuries
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-💡 **RECOMENDACIÓN DE STAKES:**
-🎯 Lock #1: {stake_amount} ({kelly_percentage}% bankroll)
-🎯 Lock #2: {stake_amount} ({kelly_percentage}% bankroll)
-🎯 Lock #3: {stake_amount} ({kelly_percentage}% bankroll)
-
 📊 **METODOLOGÍA:**
 Análisis basado en 5 factores + bonus de consistencia:
 • Confianza base del modelo (30 pts)
@@ -360,9 +360,9 @@ Partidos priorizados por fecha (hoy primero)
 ⭐⭐⭐ = Confiable (75-79 pts)
 
 💡 **RECOMENDACIÓN:**
-• Locks con 4-5⭐ → Apuesta con confianza
-• Locks con 3⭐ → Apuesta moderada
-• Usar Kelly Criterion para stakes
+• Locks con 4-5⭐ → Apuestas con máxima confianza
+• Locks con 3⭐ → Apuestas moderadas
+• Análisis basado en 11 skills especializadas
 • Priorizar locks de hoy sobre mañana si scores similares
 
 ⚠️ Ninguna predicción es 100% segura.
@@ -533,12 +533,39 @@ injuries = use_skill("injury-report-tracker", {
 })
 ```
 
-### Use bankroll-manager (optional)
+### Use player-comparison-tool skill
 ```python
-# For stake recommendations
-stakes = use_skill("bankroll-manager", {
-    "bets": top_3,
-    "method": "kelly_criterion"
+# For comparing key players
+player_analysis = use_skill("player-comparison-tool", {
+    "match": match,
+    "focus": "key_matchups"
+})
+```
+
+### Use team-chemistry-evaluator skill
+```python
+# For evaluating team chemistry and cohesion
+chemistry = use_skill("team-chemistry-evaluator", {
+    "team": team_name,
+    "recent_matches": 5
+})
+```
+
+### Use game-strategy-simulator skill
+```python
+# For tactical analysis and strategy simulation
+strategy = use_skill("game-strategy-simulator", {
+    "home_team": home,
+    "away_team": away
+})
+```
+
+### Use scouting-report-builder skill
+```python
+# For building comprehensive scouting reports
+scouting = use_skill("scouting-report-builder", {
+    "teams": [home, away],
+    "focus_areas": ["attack", "defense", "set_pieces"]
 })
 ```
 
@@ -741,14 +768,18 @@ Las 3 mejores apuestas de las próximas 48 horas
 - Kelly Criterion: Optimal bet sizing
 - Poisson Distribution: Goal prediction models
 
-**Skills Used:**
-- football-data (matches, stats, odds)
-- understat-xg-integrator (real xG data)
-- full-odds-multi-bookmaker (odds comparison)
-- sports-betting-analyzer (value bets, EV)
-- injury-report-tracker (team news)
-- player-comparison-tool (key player impact)
-- team-chemistry-evaluator (form context)
+**Skills Used (11 total):**
+1. fijini-orchestrator (lead orchestration)
+2. football-data (matches, stats, odds)
+3. understat-xg-integrator (real xG data)
+4. full-odds-multi-bookmaker (odds comparison)
+5. sports-betting-analyzer (value bets, EV)
+6. injury-report-tracker (team news)
+7. player-comparison-tool (key player impact)
+8. team-chemistry-evaluator (team cohesion)
+9. game-strategy-simulator (tactical analysis)
+10. scouting-report-builder (comprehensive scouting)
+11. (reserved for future integration)
 
 ---
 

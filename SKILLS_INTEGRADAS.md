@@ -293,13 +293,16 @@ Bot: [Activa injury-report-tracker automáticamente]
 
 ### Mejoras en Comandos Existentes
 
-#### `/fijini` - Ahora más poderoso
-Con las skills integradas, `/fijini` puede:
-- ✅ Acceder a datos más precisos (football-data)
+#### `/fijini` - TOP 3 LOCKS (próximas 48hs)
+Con las 11 skills integradas, `/fijini` puede:
+- ✅ Analizar próximas 48 horas (hoy + mañana)
+- ✅ Acceder a datos xG reales (understat-xg-integrator)
+- ✅ Odds de 10+ bookmakers (full-odds-multi-bookmaker)
 - ✅ Mejor análisis de value bets (sports-betting-analyzer)
 - ✅ Considerar impacto de lesiones (injury-report-tracker)
 - ✅ Evaluar química de equipos (team-chemistry-evaluator)
-- ✅ Simulación de escenarios (game-strategy-simulator)
+- ✅ Simulación táctica (game-strategy-simulator)
+- ✅ Scouting profesional (scouting-report-builder)
 
 #### `/partido [equipo1] vs [equipo2]` - Análisis mejorado
 Las skills añaden:
@@ -318,15 +321,20 @@ Ahora incluye:
 
 ## 🎯 Casos de Uso Prácticos
 
-### Caso 1: Análisis Completo Pre-Partido
+### Caso 1: Análisis Completo de 48 Horas
 ```
 Usuario: /fijini
-→ Bot analiza usando TODAS las skills:
+→ Bot analiza próximas 48hs usando TODAS las 11 skills:
+  • fijini-orchestrator: Orquestación y scoring
+  • understat-xg-integrator: xG real
+  • full-odds-multi-bookmaker: Mejores odds
   • football-data: Datos actualizados
   • sports-betting-analyzer: Value bets
   • injury-report-tracker: Lesiones
   • team-chemistry-evaluator: Forma del equipo
-  • Resultado: Top 3 locks súper informados
+  • game-strategy-simulator: Táctica
+  • scouting-report-builder: Análisis profundo
+  • Resultado: Top 3 locks ultra-informados (hoy + mañana)
 ```
 
 ### Caso 2: Lesión de Estrella

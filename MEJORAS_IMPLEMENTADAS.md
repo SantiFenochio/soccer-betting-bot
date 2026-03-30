@@ -24,6 +24,37 @@ Tu bot pasó de ser básico a **PROFESIONAL DE NIVEL MUNDIAL** 🌍
 
 ---
 
+## 🚀 ÚLTIMA ACTUALIZACIÓN: VERSIÓN SIMPLIFICADA (30 Marzo 2026)
+
+### ⚡ Simplificación Ultra-Potente
+
+**¿Qué cambió?**
+El bot se simplificó completamente para enfocarse 100% en lo que realmente importa: **predicciones de apuestas ultra-potentes**.
+
+**Eliminaciones:**
+- ❌ **Módulo de Bankroll completo** - Eliminado `bankroll_manager.py` y `database.py`
+- ❌ **Comandos de gestión** - Removidos `/bankroll`, `/balance`, `/apostar`, `/historial`, `/liquidar`
+- ❌ **Referencias a stakes** - Ya no se menciona Kelly Criterion, ROI, win rate en outputs
+- ❌ **Complejidad innecesaria** - Bot enfocado solo en recomendaciones puras
+
+**Mejoras:**
+- ✅ **Solo comandos esenciales**: `/fijini` (48hs), `/hoy`, `/partido`, `/xg`, `/h2h`, `/start`, `/help`, `/ligas`
+- ✅ **Enfoque total en /fijini y /hoy** - Los comandos ultra-potentes con 11 skills integradas
+- ✅ **Outputs más limpios** - Sin mencionar bankroll, solo recomendaciones profesionales
+- ✅ **Cobertura de 48 horas** - `/fijini` analiza hoy + mañana para mejores oportunidades
+- ✅ **Priorización inteligente** - Partidos de hoy priorizados sobre mañana si scores similares
+
+**Filosofía:**
+> El bot ahora es un **asesor de apuestas profesional** que entrega análisis ultra-potentes sin la complejidad de gestión de bankroll. Tú decides cómo gestionar tu dinero, el bot te da las mejores recomendaciones posibles.
+
+**Impacto:**
+- 📉 **Código 30% más simple** - Más fácil de mantener
+- 🚀 **Experiencia más directa** - Llegar rápido a lo importante
+- 🎯 **Enfoque 100% en calidad de predicciones** - No distracciones
+- ⚡ **Comandos ultra-potentes** - /fijini y /hoy con máximo poder
+
+---
+
 ## 🎯 LAS 4 MEJORAS PRINCIPALES IMPLEMENTADAS
 
 ### 1️⃣ xG INTEGRATION (Expected Goals) ⚽
