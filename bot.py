@@ -900,22 +900,32 @@ Ejemplos:
             await update.message.reply_text("❌ Error al obtener historial")
 
     async def fijini_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /fijini - Top 3 locks del día"""
+        """Comando /fijini - Top 3 locks de las próximas 48 horas"""
         await update.message.reply_text(
-            "🔍 *ANALIZANDO TODO EL MERCADO...*\n\n"
-            "Buscando las 3 mejores apuestas del día:\n"
+            "🔍 *FIJINI 48HS - ANALIZANDO MERCADO...*\n\n"
+            "Buscando las 3 mejores apuestas (hoy + mañana):\n"
             "• Analizando todos los partidos 📊\n"
             "• Evaluando xG data ⚽\n"
             "• Revisando momentum 🔥\n"
             "• Checkeando H2H history ⚔️\n"
             "• Calculando value bets 💰\n\n"
-            "_Esto puede tardar 30-60 segundos..._",
+            "_Esto puede tardar 30-90 segundos..._",
             parse_mode=ParseMode.MARKDOWN
         )
 
         try:
-            # Obtener TODOS los partidos del día
-            matches = self.analyzer.get_today_matches()
+            # Obtener partidos de las próximas 48 horas (hoy + mañana)
+            today_matches = self.analyzer.get_today_matches()
+
+            # Intentar obtener partidos de mañana
+            try:
+                tomorrow_matches = self.analyzer.get_matches_by_date(days_ahead=1)
+                matches = today_matches + (tomorrow_matches if tomorrow_matches else [])
+                logger.info(f"📅 48HS: {len(today_matches)} partidos hoy + {len(tomorrow_matches) if tomorrow_matches else 0} mañana = {len(matches)} total")
+            except Exception as e:
+                logger.warning(f"No se pudieron obtener partidos de mañana: {e}")
+                matches = today_matches
+                logger.info(f"📅 Analizando solo {len(today_matches)} partidos de hoy")
 
             if not matches:
                 await update.message.reply_text(

@@ -6,7 +6,7 @@
 
 ## 🎯 ¿Qué hace?
 
-Coordina todo el análisis multi-factorial para encontrar las **TOP 3 mejores apuestas del día**.
+Coordina todo el análisis multi-factorial para encontrar las **TOP 3 mejores apuestas de las próximas 48 HORAS** (hoy + mañana).
 
 ### Arquitectura
 
@@ -17,7 +17,7 @@ Coordina todo el análisis multi-factorial para encontrar las **TOP 3 mejores ap
 └────────┬────────────────────────────────┘
          │
          ├─► Data Fetcher
-         │   └─► Obtiene TODOS los partidos
+         │   └─► Obtiene TODOS los partidos de 48h
          │
          ├─► Parallel Analysis (3 subagentes)
          │   ├─► xG Analyzer
@@ -38,9 +38,11 @@ Coordina todo el análisis multi-factorial para encontrar las **TOP 3 mejores ap
 ### Automático
 La skill se activa automáticamente cuando detecta:
 - `/fijini`
-- "mejores apuestas del día"
-- "top picks de hoy"
+- `fijini 48hs`
+- "mejores apuestas próximas 48 horas"
+- "top picks hoy y mañana"
 - "locks del día"
+- "mejores apuestas del día"
 
 ### Manual
 No es necesario llamarla manualmente. El bot la usa automáticamente.
@@ -135,14 +137,17 @@ El orchestrator genera output profesional con:
 ### Ejemplo
 
 ```
-🔥 FIJINI - TOP 3 LOCKS DEL DÍA 🔥
+🔥 FIJINI 48HS - TOP 3 MEJORES APUESTAS 🔥
+
+Las 3 mejores apuestas de las próximas 48 horas
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🥇 LOCK #1 ⭐⭐⭐⭐⭐
 ⚽ Partido: Man City vs Sheffield
 🏆 Liga: Premier League
-🕐 Hora: 15:00hs
+📅 Fecha: Hoy 29 de Marzo
+🕐 Hora: 15:00hs (en 2 horas)
 
 🎯 APUESTA RECOMENDADA:
    💡 Victoria Manchester City
@@ -407,6 +412,6 @@ Si tienes problemas con fijini-orchestrator:
 
 **¡Listo para encontrar los locks del día! 🔥⚽💰**
 
-**Última actualización:** 29 de Marzo, 2026
-**Versión:** 1.0
-**Status:** ✅ Instalada y lista para usar
+**Última actualización:** 29 de Marzo, 2026 - Actualizado a 48h
+**Versión:** 2.0 (48-hour window)
+**Status:** ✅ Actualizada y lista para usar
