@@ -16,29 +16,29 @@ logger = logging.getLogger(__name__)
 
 
 class FootballAPIManager:
-    """Gestor de múltiples APIs de fútbol"""
+    """Gestor de múltiples APIs de fútbol - DESHABILITADO"""
 
     def __init__(self):
-        """Inicializar con API keys desde .env"""
-        self.api_football_key = os.getenv('API_FOOTBALL_KEY', '')
-        self.odds_api_key = os.getenv('ODDS_API_KEY', '')
-        self.football_data_key = os.getenv('FOOTBALL_DATA_KEY', '')
+        """Inicializar - Todas las APIs deshabilitadas"""
+        self.api_football_key = None
+        self.odds_api_key = None
+        self.football_data_key = None
+        logger.info("FootballAPIManager initialized - All external APIs disabled")
 
     def get_upcoming_matches_api_football(self, days: int = 7, include_international: bool = True) -> List[Dict]:
         """
         Obtener partidos próximos desde API-Football
-        Free tier: 100 requests/día
+        DESHABILITADO - No hay APIs externas
 
         Args:
             days: Días hacia adelante
-            include_international: Incluir partidos internacionales (amistosos, eliminatorias, etc.)
+            include_international: Incluir partidos internacionales
 
         Returns:
-            Lista de partidos
+            Lista vacía - APIs deshabilitadas
         """
-        if not self.api_football_key:
-            logger.warning("API_FOOTBALL_KEY no configurada")
-            return []
+        logger.debug("API-Football disabled - returning empty list")
+        return []
 
         try:
             headers = {
@@ -117,19 +117,18 @@ class FootballAPIManager:
 
     def get_all_matches_by_date(self, date: str = None, timezone: str = 'America/Argentina/Buenos_Aires') -> List[Dict]:
         """
-        Obtener TODOS los partidos de una fecha específica (sin filtrar por liga)
-        Útil para encontrar partidos internacionales y amistosos
+        Obtener TODOS los partidos de una fecha específica
+        DESHABILITADO - No hay APIs externas
 
         Args:
             date: Fecha en formato YYYY-MM-DD (None = hoy)
-            timezone: Zona horaria para los horarios
+            timezone: Zona horaria
 
         Returns:
-            Lista de todos los partidos
+            Lista vacía - APIs deshabilitadas
         """
-        if not self.api_football_key:
-            logger.warning("API_FOOTBALL_KEY no configurada")
-            return []
+        logger.debug("API-Football disabled - returning empty list")
+        return []
 
         try:
             if date is None:
@@ -217,17 +216,17 @@ class FootballAPIManager:
     def get_match_odds(self, home_team: str, away_team: str) -> Optional[Dict]:
         """
         Obtener cuotas de apuestas desde The Odds API
+        DESHABILITADO - No hay APIs externas
 
         Args:
             home_team: Equipo local
             away_team: Equipo visitante
 
         Returns:
-            Diccionario con odds o None
+            None - APIs deshabilitadas
         """
-        if not self.odds_api_key:
-            logger.info("ODDS_API_KEY no configurada - Sin odds disponibles")
-            return None
+        logger.debug("Odds API disabled - returning None")
+        return None
 
         try:
             url = "https://api.the-odds-api.com/v4/sports/soccer_epl/odds"
@@ -295,21 +294,16 @@ class FootballAPIManager:
     def get_team_form_fotmob(self, team_name: str) -> Optional[Dict]:
         """
         Obtener forma reciente desde FotMob
-        Requiere: pip install pyfotmob
+        DESHABILITADO - No hay APIs externas
 
         Args:
             team_name: Nombre del equipo
 
         Returns:
-            Diccionario con forma del equipo
+            None - APIs deshabilitadas
         """
-        try:
-            # Importar dinámicamente
-            try:
-                from fotmob import Fotmob
-            except ImportError:
-                logger.info("pyfotmob no instalado - Forma de FotMob no disponible")
-                return None
+        logger.debug("FotMob API disabled - returning None")
+        return None
 
             fotmob = Fotmob()
 

@@ -19,9 +19,10 @@ class DataFetcher:
 
     def __init__(self):
         """Inicializar data fetcher"""
-        self.api_football_key = os.getenv('API_FOOTBALL_KEY')
-        self.football_data_key = os.getenv('FOOTBALL_DATA_KEY')
-        self.odds_api_key = os.getenv('ODDS_API_KEY')
+        # APIs deshabilitadas - solo modo fallback
+        self.api_football_key = None
+        self.football_data_key = None
+        self.odds_api_key = None
 
         # Caché en memoria con TTL 1 hora
         self._cache = {}
@@ -36,15 +37,9 @@ class DataFetcher:
 
     def _configure_source(self):
         """Configurar fuente de datos disponible"""
-        if self.api_football_key:
-            self.source = 'api-football'
-            logger.info("DataFetcher using API-Football")
-        elif self.football_data_key:
-            self.source = 'football-data'
-            logger.info("DataFetcher using football-data.org")
-        else:
-            self.source = 'fallback'
-            logger.info("DataFetcher using fallback (hardcoded data)")
+        # Todas las APIs deshabilitadas - solo fallback
+        self.source = 'fallback'
+        logger.info("DataFetcher using fallback (no external APIs)")
 
     def get_team_strength(self, team: str, league: str = None) -> Dict[str, int]:
         """
@@ -256,145 +251,11 @@ class DataFetcher:
             away_team: Nombre del equipo visitante
 
         Returns:
-            Dict con odds reales o None si no hay API key o no se encuentran
-            Formato: {
-                'home_win': float,
-                'draw': float,
-                'away_win': float,
-                'over_25': float,
-                'under_25': float,
-                'btts_yes': float,
-                'btts_no': float,
-                'bookmaker': str
-            }
+            None - APIs deshabilitadas
         """
-        # Sin API key, retornar None (NO inventar odds)
-        if not self.odds_api_key:
-            logger.debug("No ODDS_API_KEY configured, skipping real odds")
-            return None
-
-        # Normalizar nombres para cache key
-        cache_key = f"odds:{home_team.lower()}:{away_team.lower()}"
-
-        # Verificar caché de odds (TTL 10 minutos)
-        if cache_key in self._odds_cache:
-            data, timestamp = self._odds_cache[cache_key]
-            if datetime.now() - timestamp < self._odds_cache_ttl:
-                logger.debug(f"Odds cache hit for {home_team} vs {away_team}")
-                return data
-
-        try:
-            # The Odds API - Soccer endpoint
-            # Buscar en múltiples ligas comunes
-            sport_keys = [
-                'soccer_epl',  # Premier League
-                'soccer_spain_la_liga',  # La Liga
-                'soccer_germany_bundesliga',  # Bundesliga
-                'soccer_italy_serie_a',  # Serie A
-                'soccer_france_ligue_one',  # Ligue 1
-                'soccer_uefa_champs_league',  # Champions
-                'soccer_uefa_europa_league',  # Europa League
-            ]
-
-            for sport_key in sport_keys:
-                url = f"https://api.the-odds-api.com/v4/sports/{sport_key}/odds/"
-                params = {
-                    'apiKey': self.odds_api_key,
-                    'regions': 'eu,uk',  # Bookmakers europeos
-                    'markets': 'h2h,totals,btts',  # h2h = 1X2, totals = Over/Under, btts = BTTS
-                    'oddsFormat': 'decimal',
-                }
-
-                response = requests.get(url, params=params, timeout=5)
-
-                if response.status_code != 200:
-                    logger.debug(f"Odds API returned {response.status_code} for {sport_key}")
-                    continue
-
-                data = response.json()
-
-                # Buscar el partido en los datos
-                for game in data:
-                    home = game.get('home_team', '').lower()
-                    away = game.get('away_team', '').lower()
-
-                    # Coincidencia parcial de nombres
-                    if (home_team.lower() in home or home in home_team.lower()) and \
-                       (away_team.lower() in away or away in away_team.lower()):
-
-                        # Extraer odds del primer bookmaker disponible
-                        bookmakers = game.get('bookmakers', [])
-                        if not bookmakers:
-                            continue
-
-                        bookmaker = bookmakers[0]  # Usar primer bookmaker
-                        bookmaker_name = bookmaker.get('title', 'Unknown')
-
-                        odds_data = {
-                            'bookmaker': bookmaker_name
-                        }
-
-                        # Extraer odds de cada mercado
-                        for market in bookmaker.get('markets', []):
-                            market_key = market.get('key')
-
-                            if market_key == 'h2h':  # 1X2
-                                outcomes = market.get('outcomes', [])
-                                for outcome in outcomes:
-                                    name = outcome.get('name', '')
-                                    price = outcome.get('price', 0)
-
-                                    if name == game.get('home_team'):
-                                        odds_data['home_win'] = price
-                                    elif name == game.get('away_team'):
-                                        odds_data['away_win'] = price
-                                    elif name.lower() == 'draw':
-                                        odds_data['draw'] = price
-
-                            elif market_key == 'totals':  # Over/Under
-                                outcomes = market.get('outcomes', [])
-                                for outcome in outcomes:
-                                    name = outcome.get('name', '')
-                                    point = outcome.get('point', 0)
-                                    price = outcome.get('price', 0)
-
-                                    # Buscar Over/Under 2.5
-                                    if point == 2.5:
-                                        if name.lower() == 'over':
-                                            odds_data['over_25'] = price
-                                        elif name.lower() == 'under':
-                                            odds_data['under_25'] = price
-
-                            elif market_key == 'btts':  # Both Teams To Score
-                                outcomes = market.get('outcomes', [])
-                                for outcome in outcomes:
-                                    name = outcome.get('name', '')
-                                    price = outcome.get('price', 0)
-
-                                    if name.lower() == 'yes':
-                                        odds_data['btts_yes'] = price
-                                    elif name.lower() == 'no':
-                                        odds_data['btts_no'] = price
-
-                        # Verificar que tenemos al menos odds básicas (1X2)
-                        if 'home_win' in odds_data and 'away_win' in odds_data:
-                            logger.info(f"Real odds found for {home_team} vs {away_team} from {bookmaker_name}")
-
-                            # Guardar en caché
-                            self._odds_cache[cache_key] = (odds_data, datetime.now())
-
-                            return odds_data
-
-            # No se encontró el partido en ninguna liga
-            logger.debug(f"No odds found for {home_team} vs {away_team}")
-            return None
-
-        except requests.RequestException as e:
-            logger.error(f"Error fetching odds from The Odds API: {e}")
-            return None
-        except Exception as e:
-            logger.error(f"Unexpected error fetching odds: {e}")
-            return None
+        # APIs deshabilitadas
+        logger.debug("External APIs disabled, no real odds available")
+        return None
 
     def get_match_result(self, home_team: str, away_team: str, match_date: str) -> Optional[Dict]:
         """
@@ -406,85 +267,11 @@ class DataFetcher:
             match_date: Fecha del partido (YYYY-MM-DD)
 
         Returns:
-            Dict con resultado real:
-            {
-                'home_score': int,
-                'away_score': int,
-                'score': str (ej: "2-1"),
-                'status': str ('finished', 'not_found', 'not_finished')
-            }
+            None - APIs deshabilitadas
         """
-        # Sin API key, no podemos obtener resultados
-        if not self.odds_api_key:
-            logger.debug("No ODDS_API_KEY configured, cannot fetch results")
-            return None
-
-        try:
-            # The Odds API - buscar en scores endpoint
-            sport_keys = [
-                'soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga',
-                'soccer_italy_serie_a', 'soccer_france_ligue_one',
-                'soccer_uefa_champs_league', 'soccer_uefa_europa_league'
-            ]
-
-            for sport_key in sport_keys:
-                url = f"https://api.the-odds-api.com/v4/sports/{sport_key}/scores/"
-                params = {
-                    'apiKey': self.odds_api_key,
-                    'daysFrom': 3,  # Buscar hasta 3 días atrás
-                }
-
-                response = requests.get(url, params=params, timeout=5)
-
-                if response.status_code != 200:
-                    continue
-
-                data = response.json()
-
-                # Buscar el partido
-                for game in data:
-                    home = game.get('home_team', '').lower()
-                    away = game.get('away_team', '').lower()
-
-                    # Coincidencia parcial
-                    if (home_team.lower() in home or home in home_team.lower()) and \
-                       (away_team.lower() in away or away in away_team.lower()):
-
-                        completed = game.get('completed', False)
-                        scores = game.get('scores')
-
-                        if not completed:
-                            return {
-                                'status': 'not_finished',
-                                'home_score': None,
-                                'away_score': None,
-                                'score': None
-                            }
-
-                        if scores:
-                            home_score = None
-                            away_score = None
-
-                            for score in scores:
-                                if score.get('name') == game.get('home_team'):
-                                    home_score = score.get('score')
-                                elif score.get('name') == game.get('away_team'):
-                                    away_score = score.get('score')
-
-                            if home_score is not None and away_score is not None:
-                                return {
-                                    'status': 'finished',
-                                    'home_score': int(home_score),
-                                    'away_score': int(away_score),
-                                    'score': f"{home_score}-{away_score}"
-                                }
-
-            logger.debug(f"No result found for {home_team} vs {away_team} on {match_date}")
-            return {'status': 'not_found'}
-
-        except Exception as e:
-            logger.error(f"Error fetching match result: {e}")
-            return None
+        # APIs deshabilitadas
+        logger.debug("External APIs disabled, cannot fetch match results")
+        return None
 
     def clear_cache(self):
         """Limpiar toda la caché"""
