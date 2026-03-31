@@ -48,6 +48,7 @@ class Database:
                 description TEXT,
                 verified INTEGER DEFAULT 0,
                 correct INTEGER,
+                actual_score TEXT,
                 created_at TEXT DEFAULT (datetime('now'))
             )
         ''')
@@ -294,4 +295,79 @@ class Database:
 
         except Exception as e:
             logger.error(f"Error verifying prediction: {e}")
+            return False
+
+    def get_unverified_predictions(self, date: str) -> List[Dict]:
+        """
+        Obtener predicciones sin verificar de una fecha específica
+
+        Args:
+            date: Fecha en formato ISO (YYYY-MM-DD)
+
+        Returns:
+            Lista de predicciones sin verificar
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+
+            cursor.execute('''
+                SELECT id, date, league, home_team, away_team,
+                       prediction_type, confidence, description
+                FROM predictions
+                WHERE date = ? AND verified = 0
+            ''', (date,))
+
+            predictions = []
+            for row in cursor.fetchall():
+                predictions.append({
+                    'id': row[0],
+                    'date': row[1],
+                    'league': row[2],
+                    'home_team': row[3],
+                    'away_team': row[4],
+                    'prediction_type': row[5],
+                    'confidence': row[6],
+                    'description': row[7]
+                })
+
+            conn.close()
+
+            logger.debug(f"Found {len(predictions)} unverified predictions for {date}")
+            return predictions
+
+        except Exception as e:
+            logger.error(f"Error getting unverified predictions: {e}")
+            return []
+
+    def update_prediction_result(self, prediction_id: int, correct: bool, actual_score: str = None) -> bool:
+        """
+        Actualizar resultado de una predicción con el marcador real
+
+        Args:
+            prediction_id: ID de la predicción
+            correct: Si la predicción fue correcta
+            actual_score: Marcador real (ej: "2-1")
+
+        Returns:
+            bool: True si se actualizó exitosamente
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+
+            cursor.execute('''
+                UPDATE predictions
+                SET verified = 1, correct = ?, actual_score = ?
+                WHERE id = ?
+            ''', (1 if correct else 0, actual_score, prediction_id))
+
+            conn.commit()
+            conn.close()
+
+            logger.info(f"Prediction {prediction_id} updated: correct={correct}, score={actual_score}")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error updating prediction result: {e}")
             return False

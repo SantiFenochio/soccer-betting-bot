@@ -396,6 +396,96 @@ class DataFetcher:
             logger.error(f"Unexpected error fetching odds: {e}")
             return None
 
+    def get_match_result(self, home_team: str, away_team: str, match_date: str) -> Optional[Dict]:
+        """
+        Obtener resultado real de un partido finalizado
+
+        Args:
+            home_team: Equipo local
+            away_team: Equipo visitante
+            match_date: Fecha del partido (YYYY-MM-DD)
+
+        Returns:
+            Dict con resultado real:
+            {
+                'home_score': int,
+                'away_score': int,
+                'score': str (ej: "2-1"),
+                'status': str ('finished', 'not_found', 'not_finished')
+            }
+        """
+        # Sin API key, no podemos obtener resultados
+        if not self.odds_api_key:
+            logger.debug("No ODDS_API_KEY configured, cannot fetch results")
+            return None
+
+        try:
+            # The Odds API - buscar en scores endpoint
+            sport_keys = [
+                'soccer_epl', 'soccer_spain_la_liga', 'soccer_germany_bundesliga',
+                'soccer_italy_serie_a', 'soccer_france_ligue_one',
+                'soccer_uefa_champs_league', 'soccer_uefa_europa_league'
+            ]
+
+            for sport_key in sport_keys:
+                url = f"https://api.the-odds-api.com/v4/sports/{sport_key}/scores/"
+                params = {
+                    'apiKey': self.odds_api_key,
+                    'daysFrom': 3,  # Buscar hasta 3 días atrás
+                }
+
+                response = requests.get(url, params=params, timeout=5)
+
+                if response.status_code != 200:
+                    continue
+
+                data = response.json()
+
+                # Buscar el partido
+                for game in data:
+                    home = game.get('home_team', '').lower()
+                    away = game.get('away_team', '').lower()
+
+                    # Coincidencia parcial
+                    if (home_team.lower() in home or home in home_team.lower()) and \
+                       (away_team.lower() in away or away in away_team.lower()):
+
+                        completed = game.get('completed', False)
+                        scores = game.get('scores')
+
+                        if not completed:
+                            return {
+                                'status': 'not_finished',
+                                'home_score': None,
+                                'away_score': None,
+                                'score': None
+                            }
+
+                        if scores:
+                            home_score = None
+                            away_score = None
+
+                            for score in scores:
+                                if score.get('name') == game.get('home_team'):
+                                    home_score = score.get('score')
+                                elif score.get('name') == game.get('away_team'):
+                                    away_score = score.get('score')
+
+                            if home_score is not None and away_score is not None:
+                                return {
+                                    'status': 'finished',
+                                    'home_score': int(home_score),
+                                    'away_score': int(away_score),
+                                    'score': f"{home_score}-{away_score}"
+                                }
+
+            logger.debug(f"No result found for {home_team} vs {away_team} on {match_date}")
+            return {'status': 'not_found'}
+
+        except Exception as e:
+            logger.error(f"Error fetching match result: {e}")
+            return None
+
     def clear_cache(self):
         """Limpiar toda la caché"""
         self._cache.clear()

@@ -66,10 +66,22 @@ El fijini-orchestrator lanza **4 subagentes en paralelo** para máxima velocidad
 pip install -r requirements.txt
 ```
 
-2. **Ya tienes el token configurado** en `.env` ✅
+2. **✅ Modelos ML ya entrenados**
+   - Los modelos de Machine Learning YA ESTÁN entrenados y listos
+   - Ubicación: `models/` (4 archivos .pkl)
+   - No necesitas hacer nada más
+   - El bot se reentrenará automáticamente cada domingo
+
+   **Opcional:** Reentrenar manualmente
+   ```bash
+   python train_ml.py
+   ```
+   Ver [ML_README.md](ML_README.md) para más detalles.
+
+3. **Ya tienes el token configurado** en `.env` ✅
    - Si necesitas cambiarlo, edita el archivo `.env`
 
-3. **Ejecutar el bot**
+4. **Ejecutar el bot**
 
    **Windows:**
    ```bash
@@ -133,7 +145,7 @@ Ver guía completa: [INSTALL.md](INSTALL.md)
 - ⭐⭐⭐ (75-79 pts) - Confiable, apuesta moderada
 
 ### Factores de Análisis (100 puntos)
-1. **Confianza Base** (30 pts) - Predicción del modelo principal
+1. **🤖 Base Confidence (30 pts)** - Modelo ML con XGBoost entrenado con datos históricos
 2. **Forma/Momentum** (20 pts) - Últimos 5 partidos, racha actual
 3. **Expected Goals (xG)** (20 pts) - Datos reales de Understat
 4. **Head-to-Head** (15 pts) - Últimos 5 enfrentamientos
@@ -150,6 +162,26 @@ Ver guía completa: [INSTALL.md](INSTALL.md)
 - **[MEJORAS_PROPUESTAS.md](MEJORAS_PROPUESTAS.md)** - 50+ mejoras futuras investigadas
 
 ## 🔥 Últimas Mejoras (Marzo 2026)
+
+### 🤖 Mejora #9: Machine Learning con XGBoost (30 Marzo 2026)
+- ✅ **Modelo ML entrenado con datos históricos** de 4-5 temporadas
+- ✅ **15+ features** extraídas por partido (xG, forma, momentum, H2H, etc.)
+- ✅ **3 modelos especializados**: Resultado (1X2), Goles totales, BTTS
+- ✅ **Base Confidence (30 pts)** del scoring ahora usa predicción ML
+- ✅ **Reentrenamiento automático semanal** con datos actualizados
+- ✅ **Accuracy real del modelo** mostrado en predicciones
+- ✅ **Fallback graceful** si ML no disponible
+- 📊 **Precisión esperada**: 65-70% en resultados, mejor en goles/BTTS
+
+### ✅ Mejora #8: Verificación Automática de Resultados (30 Marzo 2026)
+- ✅ **Job diario a las 23:00** verifica predicciones del día anterior
+- ✅ **Consulta API** para obtener resultados reales de partidos
+- ✅ **Actualiza base de datos** automáticamente (correct/incorrect + score)
+- ✅ **Accuracy real calculado** solo sobre predicciones verificadas
+- ✅ **Tracking de performance** por tipo de apuesta
+- ✅ **Mejora continua** del sistema basado en resultados reales
+
+## 🔥 Mejoras Anteriores
 
 ### 💰 Mejora #7: full-odds-multi-bookmaker
 - ✅ Odds reales de 10+ bookmakers

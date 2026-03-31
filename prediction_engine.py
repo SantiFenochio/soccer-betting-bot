@@ -19,6 +19,7 @@ class PredictionEngine:
         self.xg_analyzer = None
         self.value_bets_analyzer = None
         self.data_fetcher = None
+        self.ml_predictor = None
         self._init_analyzers()
 
     def _init_analyzers(self):
@@ -46,6 +47,17 @@ class PredictionEngine:
             logger.info("Value Bets Analyzer inicializado")
         except Exception as e:
             logger.warning(f"Value Bets Analyzer no disponible: {e}")
+
+        # ML Predictor
+        try:
+            from ml_model import MLPredictor
+            self.ml_predictor = MLPredictor()
+            if self.ml_predictor.is_model_trained():
+                logger.info("🤖 ML Predictor inicializado con modelos cargados")
+            else:
+                logger.warning("ML Predictor inicializado pero sin modelos entrenados")
+        except Exception as e:
+            logger.warning(f"ML Predictor no disponible: {e}")
 
     def analyze_match(self, home_team: str, away_team: str, league: str = None) -> Dict:
         """
@@ -101,11 +113,24 @@ class PredictionEngine:
                 except Exception as e:
                     logger.warning(f"Error fetching real odds: {e}")
 
+            # Obtener predicción ML (Base Confidence)
+            ml_analysis = None
+            if self.ml_predictor and self.ml_predictor.is_model_trained():
+                try:
+                    ml_analysis = self.ml_predictor.predict_match(
+                        home_team, away_team, league, xg_data, odds_data
+                    )
+                    if ml_analysis and ml_analysis.get('model_available'):
+                        logger.info(f"✓ ML prediction: {ml_analysis['ml_confidence']}% confidence")
+                except Exception as e:
+                    logger.warning(f"Error en predicción ML: {e}")
+
             # Generar predicciones
             predictions = self._generate_predictions(
                 home_team, away_team,
                 home_strength, away_strength,
-                xg_data=xg_data
+                xg_data=xg_data,
+                ml_analysis=ml_analysis
             )
 
             result = {
@@ -121,6 +146,11 @@ class PredictionEngine:
             if xg_data:
                 result['xg_analysis'] = xg_data
                 result['uses_real_xg'] = True
+
+            # Agregar análisis ML si está disponible
+            if ml_analysis:
+                result['ml_analysis'] = ml_analysis
+                result['uses_ml'] = True
 
             # Analizar value bets si tenemos odds
             if odds_data and self.value_bets_analyzer:
@@ -165,14 +195,31 @@ class PredictionEngine:
 
     def _generate_predictions(self, home_team: str, away_team: str,
                             home_strength: Dict, away_strength: Dict,
-                            xg_data: Dict = None) -> List[Dict]:
+                            xg_data: Dict = None, ml_analysis: Dict = None) -> List[Dict]:
         """
         Generar predicciones basadas en análisis
+
+        Sistema de Scoring (100 puntos):
+        1. Base Confidence (30 pts) ← ML model
+        2. Form/Momentum (20 pts)
+        3. xG real (20 pts)
+        4. H2H (15 pts)
+        5. Expected Value (15 pts)
 
         Returns:
             Lista de predicciones ordenadas por confianza
         """
         predictions = []
+
+        # Base Confidence desde ML (30 puntos máximo)
+        ml_base_confidence = 0
+        if ml_analysis and ml_analysis.get('model_available'):
+            ml_base_confidence = min(int(ml_analysis['ml_confidence'] * 0.30), 30)
+            logger.debug(f"ML Base Confidence: {ml_base_confidence}/30 pts")
+        else:
+            # Fallback: base confidence de 15 pts (50% de 30)
+            ml_base_confidence = 15
+            logger.debug("Usando fallback base confidence: 15/30 pts")
 
         # Calcular diferencias
         home_attack = home_strength['attack']
@@ -184,73 +231,99 @@ class PredictionEngine:
         away_form = away_strength['form']
 
         # 1. PREDICCIÓN DE RESULTADO
+        # Usar ML probs si están disponibles, sino fallback
         home_advantage = 5  # Ventaja de local
         home_total = home_attack + home_defense + home_form + home_advantage
         away_total = away_attack + away_defense + away_form
 
         diff = home_total - away_total
 
+        # Form/Momentum score (20 pts max)
+        form_score = int((home_form + away_form) / 10)  # 0-20
+
+        # xG score (20 pts max) - si hay xG data
+        xg_score = 0
+        if xg_data and 'match_prediction' in xg_data:
+            xg_confidence = xg_data['match_prediction'].get('confidence', 0)
+            xg_score = int(xg_confidence * 0.20)  # max 20
+
+        # Total confidence = Base (30) + Form (20) + xG (20) + H2H (15) + EV (15)
+        # Por ahora H2H y EV no están implementados, usamos simplificación
+
         if diff > 15:
+            base_conf = ml_base_confidence + form_score + xg_score
             predictions.append({
                 'type': '🏆 Ganador',
                 'prediction': f'Gana {home_team}',
-                'confidence': min(85 + (diff - 15) // 2, 95),
+                'confidence': min(base_conf + 15, 95),  # +15 por ventaja clara
                 'description': f'{home_team} es claramente superior',
                 'bet_type': 'Resultado',
                 'recommended_bet': f'1 (Victoria {home_team})'
             })
         elif diff < -15:
+            base_conf = ml_base_confidence + form_score + xg_score
             predictions.append({
                 'type': '🏆 Ganador',
                 'prediction': f'Gana {away_team}',
-                'confidence': min(85 + (abs(diff) - 15) // 2, 95),
+                'confidence': min(base_conf + 15, 95),
                 'description': f'{away_team} es claramente superior',
                 'bet_type': 'Resultado',
                 'recommended_bet': f'2 (Victoria {away_team})'
             })
         elif abs(diff) <= 10:
+            base_conf = ml_base_confidence + form_score + xg_score
             predictions.append({
                 'type': '🤝 Empate/Doble Chance',
                 'prediction': 'Partido parejo',
-                'confidence': 75,
+                'confidence': min(base_conf + 5, 85),
                 'description': 'Ambos equipos equilibrados',
                 'bet_type': 'Resultado',
                 'recommended_bet': 'X (Empate) o 1X/X2 (Doble Chance)'
             })
         else:
             winner = home_team if diff > 0 else away_team
+            base_conf = ml_base_confidence + form_score + xg_score
             predictions.append({
                 'type': '⚖️ Favorito',
                 'prediction': f'Favorito: {winner}',
-                'confidence': 70 + abs(diff) // 3,
+                'confidence': min(base_conf + 10, 88),
                 'description': f'{winner} tiene ventaja pero no es seguro',
                 'bet_type': 'Resultado',
                 'recommended_bet': f'{"1" if diff > 0 else "2"} o 1X/X2'
             })
 
         # 2. PREDICCIÓN DE GOLES
-        # Si tenemos xG real, usarlo; sino usar estimación
-        if xg_data and 'match_prediction' in xg_data:
+        # Usar ML prediction si está disponible
+        if ml_analysis and ml_analysis.get('model_available'):
+            avg_goals_expected = ml_analysis.get('ml_predicted_goals', 2.5)
+            over_25_prob = ml_analysis.get('ml_over_2_5_prob', 50)
+            logger.info(f"Usando ML: {avg_goals_expected:.2f} goles esperados, Over 2.5: {over_25_prob}%")
+        elif xg_data and 'match_prediction' in xg_data:
             avg_goals_expected = xg_data['match_prediction']['total_xg_expected']
+            over_25_prob = 60 if avg_goals_expected > 2.7 else 40
             logger.info(f"Usando xG real: {avg_goals_expected:.2f} goles esperados")
         else:
             avg_goals_expected = (home_attack + away_attack) / 40  # Escala a goles esperados
+            over_25_prob = 50
 
-        if avg_goals_expected > 2.7:
+        # Confidence con scoring system
+        base_goals_conf = ml_base_confidence + form_score + xg_score
+
+        if avg_goals_expected > 2.7 or over_25_prob > 55:
             predictions.append({
                 'type': '⚽ Goles',
                 'prediction': 'Over 2.5 goles',
-                'confidence': min(75 + int((avg_goals_expected - 2.7) * 10), 90),
-                'description': f'Ambos equipos ofensivos (ataque promedio: {avg_goals_expected:.1f})',
+                'confidence': min(base_goals_conf + int((avg_goals_expected - 2.5) * 5), 92),
+                'description': f'Ambos equipos ofensivos ({avg_goals_expected:.1f} goles esperados)',
                 'bet_type': 'Goles',
                 'recommended_bet': 'Over 2.5 goles'
             })
-        elif avg_goals_expected < 2.2:
+        elif avg_goals_expected < 2.2 or over_25_prob < 45:
             predictions.append({
                 'type': '🔒 Goles',
                 'prediction': 'Under 2.5 goles',
-                'confidence': min(75 + int((2.2 - avg_goals_expected) * 10), 88),
-                'description': f'Partido cerrado (goles esperados: {avg_goals_expected:.1f})',
+                'confidence': min(base_goals_conf + int((2.5 - avg_goals_expected) * 5), 90),
+                'description': f'Partido cerrado ({avg_goals_expected:.1f} goles esperados)',
                 'bet_type': 'Goles',
                 'recommended_bet': 'Under 2.5 goles'
             })
@@ -258,31 +331,39 @@ class PredictionEngine:
             predictions.append({
                 'type': '⚽ Goles',
                 'prediction': f'Entre 2-3 goles',
-                'confidence': 70,
+                'confidence': min(base_goals_conf, 75),
                 'description': f'Goles esperados: {avg_goals_expected:.1f}',
                 'bet_type': 'Goles',
                 'recommended_bet': 'Over/Under según cuotas'
             })
 
-        # 3. AMBOS ANOTAN
+        # 3. AMBOS ANOTAN (BTTS)
         both_attack_strong = home_attack > 75 and away_attack > 75
         both_defense_weak = home_defense < 80 and away_defense < 80
 
-        if both_attack_strong or both_defense_weak:
+        # Usar ML BTTS prob si está disponible
+        btts_yes_prob = 50
+        if ml_analysis and ml_analysis.get('model_available'):
+            btts_yes_prob = ml_analysis.get('ml_btts_yes_prob', 50)
+
+        base_btts_conf = ml_base_confidence + form_score + xg_score
+
+        if both_attack_strong or both_defense_weak or btts_yes_prob > 55:
+            conf_boost = 10 if both_attack_strong else 5
             predictions.append({
                 'type': '🎯 Ambos Anotan',
                 'prediction': 'Sí - Ambos equipos marcarán',
-                'confidence': 78 if both_attack_strong else 72,
-                'description': 'Ambos equipos tienen capacidad ofensiva',
+                'confidence': min(base_btts_conf + conf_boost, 88),
+                'description': f'Ambos equipos tienen capacidad ofensiva (BTTS prob: {btts_yes_prob:.0f}%)',
                 'bet_type': 'Ambos Anotan',
                 'recommended_bet': 'Sí (BTTS - Both Teams To Score)'
             })
-        elif home_defense > 85 or away_defense > 85:
+        elif (home_defense > 85 or away_defense > 85) or btts_yes_prob < 45:
             predictions.append({
                 'type': '🛡️ Ambos Anotan',
                 'prediction': 'No - Defensas sólidas',
-                'confidence': 70,
-                'description': 'Al menos una defensa muy sólida',
+                'confidence': min(base_btts_conf + 5, 82),
+                'description': f'Al menos una defensa sólida (BTTS prob: {btts_yes_prob:.0f}%)',
                 'bet_type': 'Ambos Anotan',
                 'recommended_bet': 'No (al menos un equipo no anotará)'
             })
@@ -406,9 +487,14 @@ class PredictionEngine:
             msg += f"   📈 Confianza: {confidence}%\n"
             msg += f"   ℹ️ {pred['description']}\n\n"
 
-        # Nota sobre xG
+        # Notas sobre mejoras
+        if analysis.get('uses_ml'):
+            ml_data = analysis.get('ml_analysis', {})
+            ml_conf = ml_data.get('ml_confidence', 0)
+            msg += f"\n🤖 _Predicción potenciada con ML (confidence: {ml_conf}%)_\n"
+
         if analysis.get('uses_real_xg'):
-            msg += "\n📊 _Análisis mejorado con datos xG reales_\n"
+            msg += "📊 _Análisis mejorado con datos xG reales_\n"
 
         msg += "⚠️ _Apuesta responsablemente_"
 

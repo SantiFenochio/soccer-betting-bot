@@ -21,7 +21,8 @@ from telegram.constants import ParseMode
 from dotenv import load_dotenv
 
 from analyzer import SoccerAnalyzer
-# from database import DatabaseManager  # DESHABILITADO - Ver versión simplificada
+from database import Database
+from data_fetcher import DataFetcher
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,8 @@ class NotificationScheduler:
         """Inicializar scheduler"""
         self.bot = Bot(token=bot_token)
         self.analyzer = SoccerAnalyzer()
-        # self.db = DatabaseManager()  # DESHABILITADO
+        self.db = Database()
+        self.data_fetcher = DataFetcher()
         self.min_confidence = int(os.getenv('MIN_CONFIDENCE', '70'))
 
     async def send_daily_predictions(self):
@@ -181,6 +183,176 @@ class NotificationScheduler:
         except Exception as e:
             logger.error(f"Error en notificación pre-partido: {e}")
 
+    async def verify_yesterday_predictions(self):
+        """
+        Verificar resultados de predicciones del día anterior
+
+        Se ejecuta diariamente a las 23:00 (America/Argentina/Buenos_Aires)
+        """
+        logger.info("🔍 Verificando predicciones del día anterior...")
+
+        try:
+            # Obtener fecha de ayer
+            yesterday = (datetime.now() - timedelta(days=1)).date().isoformat()
+
+            # Obtener predicciones sin verificar de ayer
+            unverified = self.db.get_unverified_predictions(yesterday)
+
+            if not unverified:
+                logger.info(f"No hay predicciones sin verificar para {yesterday}")
+                return
+
+            logger.info(f"Encontradas {len(unverified)} predicciones para verificar")
+
+            verified_count = 0
+            correct_count = 0
+
+            for pred in unverified:
+                try:
+                    # Obtener resultado real del partido
+                    result = self.data_fetcher.get_match_result(
+                        pred['home_team'],
+                        pred['away_team'],
+                        pred['date']
+                    )
+
+                    if not result or result['status'] != 'finished':
+                        logger.debug(f"Resultado no disponible para {pred['home_team']} vs {pred['away_team']}")
+                        continue
+
+                    home_score = result['home_score']
+                    away_score = result['away_score']
+                    actual_score = result['score']
+
+                    # Verificar si la predicción fue correcta
+                    is_correct = self._check_prediction_correct(
+                        pred['prediction_type'],
+                        home_score,
+                        away_score
+                    )
+
+                    # Actualizar en base de datos
+                    success = self.db.update_prediction_result(
+                        pred['id'],
+                        is_correct,
+                        actual_score
+                    )
+
+                    if success:
+                        verified_count += 1
+                        if is_correct:
+                            correct_count += 1
+
+                        logger.info(
+                            f"✓ {pred['home_team']} vs {pred['away_team']}: "
+                            f"{actual_score} - {'CORRECTO' if is_correct else 'INCORRECTO'}"
+                        )
+
+                except Exception as e:
+                    logger.error(f"Error verificando predicción {pred['id']}: {e}")
+                    continue
+
+            logger.info(
+                f"✅ Verificación completada: {verified_count} verificadas, "
+                f"{correct_count} correctas ({(correct_count/verified_count*100):.1f}% accuracy)"
+            )
+
+        except Exception as e:
+            logger.error(f"Error en verificación de predicciones: {e}")
+
+    def _check_prediction_correct(self, prediction_type: str, home_score: int, away_score: int) -> bool:
+        """
+        Verificar si una predicción fue correcta según el resultado real
+
+        Args:
+            prediction_type: Tipo de predicción (ej: "🏆 Ganador", "⚽ Goles", etc.)
+            home_score: Goles del equipo local
+            away_score: Goles del equipo visitante
+
+        Returns:
+            bool: True si la predicción fue correcta
+        """
+        total_goals = home_score + away_score
+
+        # Normalizar tipo de predicción (quitar emojis y minúsculas)
+        pred_lower = prediction_type.lower()
+
+        # Resultado del partido
+        if '🏆' in prediction_type or 'ganador' in pred_lower:
+            # Verificar según texto de la predicción
+            if home_score > away_score:
+                return 'gana' in pred_lower or 'victoria' in pred_lower or '1' in pred_lower
+            elif away_score > home_score:
+                return 'gana' in pred_lower or 'victoria' in pred_lower or '2' in pred_lower
+            else:
+                return 'empate' in pred_lower or 'draw' in pred_lower
+
+        # Over/Under 2.5 goles
+        elif '⚽' in prediction_type or 'goles' in pred_lower:
+            if 'over' in pred_lower:
+                return total_goals > 2.5
+            elif 'under' in pred_lower:
+                return total_goals < 2.5
+
+        # Ambos anotan (BTTS)
+        elif '🎯' in prediction_type or 'ambos' in pred_lower or 'btts' in pred_lower:
+            both_scored = home_score > 0 and away_score > 0
+            if 'sí' in pred_lower or 'yes' in pred_lower:
+                return both_scored
+            elif 'no' in pred_lower:
+                return not both_scored
+
+        # Por defecto, no podemos verificar
+        logger.warning(f"No se puede verificar tipo de predicción: {prediction_type}")
+        return False
+
+    async def retrain_ml_model(self):
+        """
+        Reentrenar modelo ML con datos actualizados
+
+        Se ejecuta semanalmente (domingos a las 22:00)
+        """
+        logger.info("🤖 Iniciando reentrenamiento de modelo ML...")
+
+        try:
+            from ml_model import MLPredictor
+
+            predictor = MLPredictor()
+
+            # Entrenar con datos de últimas 4 temporadas
+            success = predictor.train_model(seasons=4)
+
+            if success:
+                logger.info("✅ Modelo ML reentrenado exitosamente")
+
+                # Notificar a admins (opcional)
+                admin_message = """
+🤖 *MODELO ML ACTUALIZADO*
+
+El modelo de Machine Learning ha sido reentrenado exitosamente con datos actualizados.
+
+✅ Las predicciones ahora usan el modelo más reciente.
+
+📊 _Entrenado con datos de las últimas 4 temporadas_
+                """
+
+                # Enviar solo si hay chat_id configurado
+                chat_id = os.getenv('TELEGRAM_CHAT_ID')
+                if chat_id:
+                    try:
+                        await self.bot.send_message(
+                            chat_id=int(chat_id),
+                            text=admin_message,
+                            parse_mode=ParseMode.MARKDOWN
+                        )
+                    except Exception as e:
+                        logger.warning(f"No se pudo enviar notificación de reentrenamiento: {e}")
+            else:
+                logger.error("❌ Error en reentrenamiento de modelo ML")
+
+        except Exception as e:
+            logger.error(f"Error en reentrenamiento ML: {e}")
+
     async def send_weekly_summary(self):
         """Enviar resumen semanal de resultados"""
         logger.info("📊 Enviando resumen semanal...")
@@ -241,14 +413,26 @@ class NotificationScheduler:
             lambda: asyncio.run(self.send_daily_predictions())
         )
 
+        # Verificación de resultados (diario a las 23:00 Argentina)
+        schedule.every().day.at("23:00").do(
+            lambda: asyncio.run(self.verify_yesterday_predictions())
+        )
+
         # Resumen semanal (domingos)
         schedule.every().sunday.at("20:00").do(
             lambda: asyncio.run(self.send_weekly_summary())
         )
 
+        # Reentrenamiento ML (domingos a las 22:00)
+        schedule.every().sunday.at("22:00").do(
+            lambda: asyncio.run(self.retrain_ml_model())
+        )
+
         logger.info(f"✅ Jobs programados:")
         logger.info(f"  - Predicciones diarias: {notification_time}")
+        logger.info(f"  - Verificación de resultados: 23:00 (diario)")
         logger.info(f"  - Resumen semanal: Domingos 20:00")
+        logger.info(f"  - Reentrenamiento ML: Domingos 22:00")
 
     def run(self):
         """Ejecutar scheduler"""
