@@ -51,3 +51,11 @@ skills/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Claude Code
+.claude/
+
+# Bot runtime
+bot.pid
+bot_output.log
+start_bot.sh

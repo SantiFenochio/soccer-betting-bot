@@ -1,893 +1,444 @@
 """
-Telegram Bot
-Bot de Telegram para predicciones de fútbol
+Simple Soccer Betting Bot
+Bot de Telegram simplificado para detección de value bets
 """
 
 import os
+import sys
 import logging
+import asyncio
 from datetime import datetime
-from typing import Optional
+from dotenv import load_dotenv
 
 from telegram import Update
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    ContextTypes,
-    MessageHandler,
-    filters
-)
+from telegram.ext import Application, CommandHandler, ContextTypes
 from telegram.constants import ParseMode
 
-from analyzer import SoccerAnalyzer, format_prediction
-from database import Database
-from utils import normalize_team_name, parse_team_names, format_team_name
+from value_bets import ValueBetFinder
+from data_fetcher import DataFetcher
+
+# Fix para emojis en Windows
+if sys.platform == 'win32':
+    import codecs
+    # Solo aplicar si aún no se aplicó
+    if hasattr(sys.stdout, 'buffer'):
+        sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict')
+        sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer, 'strict')
 
 # Configurar logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO,
-    handlers=[
-        logging.FileHandler('./logs/bot.log'),
-        logging.StreamHandler()
-    ]
+    level=logging.INFO
 )
 logger = logging.getLogger(__name__)
 
+# Cargar variables de entorno
+load_dotenv()
+
+# Mapeo de códigos de liga a IDs
+LEAGUES = {
+    'PL': {'id': 2021, 'name': 'Premier League'},
+    'PD': {'id': 2014, 'name': 'La Liga'},
+    'BL1': {'id': 2002, 'name': 'Bundesliga'},
+    'SA': {'id': 2019, 'name': 'Serie A'},
+    'FL1': {'id': 2015, 'name': 'Ligue 1'},
+}
+
 
 class SoccerBettingBot:
-    """Bot de Telegram para análisis de fútbol"""
+    """Bot de Telegram simple para value bets"""
 
     def __init__(self, token: str):
         """Inicializar bot"""
         self.token = token
-        self.analyzer = SoccerAnalyzer()
-        self.db = Database()
-        self.app = None
+        self.value_finder = ValueBetFinder()
+        self.data_fetcher = self.value_finder.data_fetcher
+
+        logger.info("Bot inicializado")
 
     async def start_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Comando /start"""
         user = update.effective_user
-        chat_id = update.effective_chat.id
 
-        welcome_message = f"""
-⚽ *¡Bienvenido al Bot de Análisis de Fútbol PRO!* ⚽
+        message = f"""
+🎯 *Soccer Betting Bot - Value Finder*
 
-Hola {user.first_name}! 👋
+¡Hola {user.first_name}! 👋
 
-Bot profesional con análisis multi-factorial ultra-potente.
+Detecto value bets automáticamente usando:
+• 📊 football-data.org (stats de equipos)
+• 💰 The Odds API (odds reales)
+• 🧮 Modelo Poisson (cálculo de EV)
 
-🎯 *Tu Chat ID:* `{chat_id}`
+*COMANDOS DISPONIBLES:*
 
-🔥 *ANÁLISIS ULTRA-POTENTE:*
-🎯 /fijini - TOP 3 LOCKS (próximas 48hs)
-📅 /hoy - Análisis completo del día
-📊 Análisis xG (Expected Goals) real
-💰 Sistema de Value Bets automático
-⚔️ Head-to-Head histórico
-🔥 Análisis de Momentum/Rachas
-✅ Predicciones con +67% precisión
+🔍 */analizar [liga]* - Buscar value bets
+   Ejemplo: `/analizar PL`
 
-📋 *Comandos principales:*
-🔥 `/fijini` - ¡COMIENZA AQUÍ! Top 3 próximas 48hs
-🎯 `/hoy` - Todos los partidos del día
-⚽ `/partido [equipo1] vs [equipo2]` - Predicción completa
-📊 `/xg [equipo1] vs [equipo2]` - Análisis xG
-⚔️ `/h2h [equipo1] vs [equipo2]` - Histórico
-🔥 `/momentum [equipo]` - Racha actual
+📅 */partidos [liga]* - Próximos partidos
+   Ejemplo: `/partidos PD`
 
-📚 `/help` - Ver todos los comandos
-🏆 `/ligas` - Ligas disponibles
+⚙️ */estado* - Estado de APIs
 
-⚠️ *Apuesta responsablemente* 🎲
+💡 */ayuda* - Ver esta ayuda
 
-¡Empezá con /fijini o /hoy! 🔥
+*LIGAS SOPORTADAS:*
+• PL - Premier League 🏴󠁧󠁢󠁥󠁮󠁧󠁿
+• PD - La Liga 🇪🇸
+• BL1 - Bundesliga 🇩🇪
+• SA - Serie A 🇮🇹
+• FL1 - Ligue 1 🇫🇷
+
+⚠️ _Apuesta responsablemente_
         """
 
-        await update.message.reply_text(
-            welcome_message,
+        await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+
+    async def ayuda_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Comando /ayuda"""
+        message = """
+📖 *GUÍA DE COMANDOS*
+
+🔍 *ANALIZAR VALUE BETS*
+`/analizar [liga]`
+
+Busca partidos con Expected Value positivo (>5%)
+
+Ejemplos:
+• `/analizar PL` - Premier League
+• `/analizar PD` - La Liga
+• `/analizar BL1` - Bundesliga
+
+---
+
+📅 *VER PRÓXIMOS PARTIDOS*
+`/partidos [liga]`
+
+Lista los próximos 5 partidos programados
+
+Ejemplos:
+• `/partidos SA` - Serie A
+• `/partidos FL1` - Ligue 1
+
+---
+
+⚙️ *ESTADO DEL SISTEMA*
+`/estado`
+
+Verifica:
+• Conexión a football-data.org
+• Conexión a The Odds API
+• Requests restantes (The Odds API)
+
+---
+
+*LIGAS DISPONIBLES:*
+PL, PD, BL1, SA, FL1
+
+⚠️ _El análisis consume requests de The Odds API (límite: 500/mes en free tier)_
+        """
+
+        await update.message.reply_text(message, parse_mode=ParseMode.MARKDOWN)
+
+    async def analizar_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Comando /analizar [liga]"""
+        # Verificar argumentos
+        if not context.args:
+            await update.message.reply_text(
+                "⚠️ *Uso incorrecto*\n\n"
+                "Usa: `/analizar [liga]`\n\n"
+                "Ejemplos:\n"
+                "• `/analizar PL` - Premier League\n"
+                "• `/analizar PD` - La Liga\n"
+                "• `/analizar BL1` - Bundesliga\n\n"
+                "Ligas: PL, PD, BL1, SA, FL1",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        league_code = context.args[0].upper()
+
+        # Verificar liga válida
+        if league_code not in LEAGUES:
+            await update.message.reply_text(
+                f"❌ Liga '{league_code}' no soportada\n\n"
+                "Ligas disponibles:\n"
+                "• PL - Premier League\n"
+                "• PD - La Liga\n"
+                "• BL1 - Bundesliga\n"
+                "• SA - Serie A\n"
+                "• FL1 - Ligue 1",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+
+        league = LEAGUES[league_code]
+        league_name = league['name']
+        competition_id = league['id']
+
+        # Mensaje de "analizando"
+        status_msg = await update.message.reply_text(
+            f"⏳ *Analizando {league_name}...*\n\n"
+            f"• Obteniendo próximos partidos\n"
+            f"• Buscando odds reales\n"
+            f"• Calculando Expected Value\n\n"
+            f"_Esto puede tardar 10-30 segundos_",
             parse_mode=ParseMode.MARKDOWN
         )
 
-    async def help_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /help"""
-        help_text = """
-📖 *Guía de Comandos*
-
-🔥 *COMANDOS PRINCIPALES:*
-/fijini - Top 3 locks próximas 48hs (hoy + mañana)
-   _Análisis ultra-potente con 11 skills integradas_
-
-/hoy - Análisis completo de todos los partidos del día
-   _Predicciones profesionales con scoring multi-factorial_
-
-🎯 *Análisis de partidos:*
-/partido [equipo1] vs [equipo2] - Predicción completa
-/xg [equipo1] vs [equipo2] - Análisis xG (Expected Goals)
-/h2h [equipo1] vs [equipo2] - Head-to-Head histórico
-/momentum [equipo] - Racha y forma actual
-/analizar [equipo] - Estadísticas del equipo
-/selecciones [país1] vs [país2] - Predicción de selecciones
-
-📊 *Información:*
-/tendencias - Patrones estadísticos confiables
-/stats - Estadísticas del bot (precisión)
-/ligas - Ver todas las ligas disponibles
-
-⚙️ *Configuración:*
-/suscribir - Activar/desactivar notificaciones diarias
-
-💡 *Ejemplos:*
-• `/fijini` - ¡COMIENZA AQUÍ! 🔥
-• `/hoy` - Ver partidos de hoy
-• `/partido Barcelona vs Real Madrid`
-• `/xg Manchester City vs Liverpool`
-• `/h2h Real Madrid vs Barcelona`
-• `/momentum Arsenal`
-
-⚠️ Apuesta responsablemente!
-        """
-
-        await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
-
-    async def today_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /hoy - Partidos de hoy"""
-        await update.message.reply_text("📅 *HOY - Análisis completo del día*\n\n🔍 Buscando partidos...")
-
         try:
-            matches = self.analyzer.get_today_matches()
+            # Buscar value bets
+            logger.info(f"Usuario {update.effective_user.id} solicitó análisis de {league_name}")
+            value_bets = self.value_finder.find_value_in_competition(competition_id)
 
-            if not matches:
+            # Eliminar mensaje de "analizando"
+            await status_msg.delete()
+
+            if not value_bets:
                 await update.message.reply_text(
-                    "😔 No hay partidos programados para hoy en las ligas principales."
+                    f"😕 *No se encontraron value bets en {league_name}*\n\n"
+                    f"Posibles razones:\n"
+                    f"• No hay partidos próximos\n"
+                    f"• Las odds actuales no ofrecen value\n"
+                    f"• Requests de The Odds API agotados\n\n"
+                    f"Intenta más tarde o con otra liga.",
+                    parse_mode=ParseMode.MARKDOWN
                 )
                 return
 
-            response = "📅 *HOY - ANÁLISIS COMPLETO DEL DÍA*\n\n"
-            response += "Todos los partidos con predicciones multi-factoriales\n"
-            response += "━━━━━━━━━━━━━━━━━━━━━━\n\n"
+            # Enviar value bets encontrados
+            response = f"🔥 *VALUE BETS - {league_name}*\n\n"
+            response += f"Encontrados: *{len(value_bets)} partidos*\n"
+            response += f"━━━━━━━━━━━━━━━━━━━━━━\n\n"
 
-            for idx, match in enumerate(matches[:10], 1):  # Máximo 10 partidos
-                response += f"*{idx}. {match['league']}*\n"
-                response += f"🏠 {match['home']} vs {match['away']} 🚗\n"
+            for i, bet in enumerate(value_bets[:5], 1):  # Top 5
+                response += f"*{i}. {bet['home_team']} vs {bet['away_team']}*\n"
 
-                # Formatear hora de forma más legible
+                # Fecha
                 try:
-                    from datetime import datetime
-                    time_str = match.get('time', '')
-                    if 'T' in time_str:
-                        dt = datetime.fromisoformat(time_str.replace('Z', '+00:00'))
-                        response += f"🕐 {dt.strftime('%H:%M')}hs\n"
-                    else:
-                        response += f"🕐 {time_str}\n"
+                    date_str = bet.get('match_date', '')
+                    if date_str:
+                        date = datetime.fromisoformat(date_str)
+                        response += f"📅 {date.strftime('%d/%m/%Y %H:%M')}\n"
                 except:
-                    response += f"🕐 {match.get('time', 'TBD')}\n"
+                    pass
 
-                # Mostrar las mejores predicciones
-                if match.get('predictions'):
-                    preds = match['predictions']
+                response += f"\n"
+                response += f"🎯 *{bet['recommendation']}*\n"
+                response += f"💰 Apuesta: {bet['best_bet']} @ {bet['best_odds']}\n"
+                response += f"📈 Expected Value: *+{bet['best_ev']*100:.1f}%*\n"
+                response += f"⭐ Confianza: {bet['confidence']}%\n"
 
-                    # Mostrar top 3 predicciones con confianza > 0
-                    top_preds = [p for p in preds if p.get('confidence', 0) > 0][:3]
+                # Stats
+                home_stats = bet['stats']['home']
+                away_stats = bet['stats']['away']
+                response += f"\n📊 Stats:\n"
+                response += f"   • {bet['home_team']}: ATK {home_stats['attack']} | DEF {home_stats['defense']} | FORM {home_stats['form']}\n"
+                response += f"   • {bet['away_team']}: ATK {away_stats['attack']} | DEF {away_stats['defense']} | FORM {away_stats['form']}\n"
 
-                    if top_preds:
-                        response += "\n*📊 RECOMENDACIONES:*\n"
-                        for pred in top_preds:
-                            conf = pred.get('confidence', 0)
+                response += f"\n{'─'*30}\n\n"
 
-                            # Emoji según confianza
-                            if conf >= 85:
-                                emoji = "🔥🔥"
-                            elif conf >= 75:
-                                emoji = "🔥"
-                            elif conf >= 65:
-                                emoji = "✅"
-                            else:
-                                emoji = "⚠️"
+            response += f"⚠️ _Apuesta responsablemente. El EV positivo no garantiza ganancia._"
 
-                            bet = pred.get('recommended_bet', pred.get('prediction', ''))
-                            response += f"{emoji} {bet} ({conf}%)\n"
-                    else:
-                        response += "ℹ️ _Análisis en progreso_\n"
-                else:
-                    response += "⚠️ Sin predicciones\n"
+            # Enviar (puede ser largo, dividir si es necesario)
+            if len(response) > 4000:
+                # Enviar en chunks
+                for i in range(0, len(response), 4000):
+                    await update.message.reply_text(
+                        response[i:i+4000],
+                        parse_mode=ParseMode.MARKDOWN
+                    )
+            else:
+                await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
 
-                response += "\n" + "─" * 30 + "\n\n"
-
-            response += "💡 _Usa /partido [equipo1] vs [equipo2] para análisis completo_\n"
-            response += "⚠️ _Apuesta responsablemente_"
-
-            await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
+            # Mostrar requests restantes
+            if self.data_fetcher.odds_requests_remaining:
+                await update.message.reply_text(
+                    f"📊 Requests restantes (The Odds API): {self.data_fetcher.odds_requests_remaining}",
+                    parse_mode=ParseMode.MARKDOWN
+                )
 
         except Exception as e:
-            logger.error(f"Error en /hoy: {e}")
+            logger.error(f"Error en /analizar: {e}", exc_info=True)
+            await status_msg.delete()
             await update.message.reply_text(
-                "❌ Error al obtener partidos. Intenta de nuevo."
+                f"❌ *Error al analizar*\n\n"
+                f"Error: {str(e)}\n\n"
+                f"Verifica el estado de las APIs con `/estado`",
+                parse_mode=ParseMode.MARKDOWN
             )
 
-    async def analyze_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /analizar [equipo]"""
+    async def partidos_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Comando /partidos [liga]"""
+        # Verificar argumentos
         if not context.args:
             await update.message.reply_text(
-                "❌ Uso: /analizar [nombre del equipo]\n"
-                "Ejemplo: `/analizar Manchester City`",
+                "⚠️ *Uso incorrecto*\n\n"
+                "Usa: `/partidos [liga]`\n\n"
+                "Ejemplos:\n"
+                "• `/partidos PL`\n"
+                "• `/partidos PD`\n\n"
+                "Ligas: PL, PD, BL1, SA, FL1",
                 parse_mode=ParseMode.MARKDOWN
             )
             return
 
-        team_name = ' '.join(context.args)
-        await update.message.reply_text(f"🔍 Analizando {team_name}...")
+        league_code = context.args[0].upper()
+
+        if league_code not in LEAGUES:
+            await update.message.reply_text(
+                f"❌ Liga '{league_code}' no soportada\n\n"
+                "Ligas: PL, PD, BL1, SA, FL1"
+            )
+            return
+
+        league = LEAGUES[league_code]
+        league_name = league['name']
+        competition_id = league['id']
 
         try:
-            # Por defecto buscar en Premier League, expandir si no se encuentra
-            stats = self.analyzer.get_team_stats(team_name, 'ENG', n_matches=10)
+            # Obtener próximos partidos
+            status_msg = await update.message.reply_text(
+                f"⏳ Obteniendo partidos de {league_name}..."
+            )
 
-            if 'error' in stats:
+            upcoming = self.data_fetcher.get_upcoming_matches(competition_id, days_ahead=14)
+
+            await status_msg.delete()
+
+            if not upcoming:
                 await update.message.reply_text(
-                    f"❌ No se encontraron datos para {team_name}\n"
-                    "Verifica el nombre del equipo."
-                )
-                return
-
-            response = f"📊 *Análisis de {stats['team']}*\n\n"
-            response += f"📈 *Últimos {stats['matches_analyzed']} partidos:*\n\n"
-
-            response += f"🎯 *Resultados:*\n"
-            response += f"✅ Victorias: {stats['wins']}\n"
-            response += f"➖ Empates: {stats['draws']}\n"
-            response += f"❌ Derrotas: {stats['losses']}\n\n"
-
-            response += f"⚽ *Goles:*\n"
-            response += f"📤 Promedio anotados: {stats.get('avg_goals_scored', 0)}\n"
-            response += f"📥 Promedio recibidos: {stats.get('avg_goals_conceded', 0)}\n"
-            response += f"🧤 Valla invicta: {stats.get('clean_sheet_percentage', 0)}%\n\n"
-
-            response += f"📊 *Tendencias:*\n"
-            response += f"🎲 BTTS: {stats.get('btts_percentage', 0)}%\n"
-            response += f"🔺 Over 2.5: {stats.get('over_25_percentage', 0)}%\n"
-            response += f"🔻 Over 3.5: {stats.get('over_35_percentage', 0)}%\n\n"
-
-            # Recomendación
-            if stats.get('over_25_percentage', 0) > 70:
-                response += "💡 *Recomendación:* Bueno para Over 2.5 goles\n"
-            elif stats.get('btts_percentage', 0) > 70:
-                response += "💡 *Recomendación:* Muy probable BTTS\n"
-            elif stats.get('clean_sheet_percentage', 0) > 50:
-                response += "💡 *Recomendación:* Defensa sólida, considerar Under\n"
-
-            await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
-
-        except Exception as e:
-            logger.error(f"Error en /analizar: {e}")
-            await update.message.reply_text(
-                "❌ Error al analizar equipo. Intenta de nuevo."
-            )
-
-    async def match_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /partido [equipo1] vs [equipo2]"""
-        if not context.args or 'vs' not in ' '.join(context.args).lower():
-            await update.message.reply_text(
-                "❌ Uso: /partido [equipo local] vs [equipo visitante]\n"
-                "Ejemplo: `/partido Manchester City vs Liverpool`",
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return
-
-        full_text = ' '.join(context.args)
-
-        # Parsear y normalizar nombres de equipos
-        home_team, away_team = parse_team_names(full_text)
-
-        if not home_team or not away_team:
-            await update.message.reply_text(
-                "❌ Formato incorrecto. Usa: /partido [equipo1] vs [equipo2]"
-            )
-            return
-
-        # Formatear nombres para mostrar
-        home_display = format_team_name(home_team)
-        away_display = format_team_name(away_team)
-
-        await update.message.reply_text(
-            f"🔍 Analizando {home_display} vs {away_display}..."
-        )
-
-        try:
-            # Usar el motor de predicciones avanzado
-            from prediction_engine import PredictionEngine
-
-            pred_engine = PredictionEngine()
-            analysis = pred_engine.analyze_match(home_team, away_team)
-
-            # Formatear análisis completo
-            formatted = pred_engine.format_predictions_for_telegram(analysis)
-            await update.message.reply_text(formatted, parse_mode=ParseMode.MARKDOWN)
-
-            # Guardar predicciones en DB
-            if 'predictions' in analysis:
-                for pred in analysis['predictions']:
-                    self.db.save_prediction({
-                        'date': datetime.now().date().isoformat(),
-                        'league': 'Unknown',
-                        'home_team': home_team,
-                        'away_team': away_team,
-                        'prediction_type': pred.get('type', ''),
-                        'confidence': pred.get('confidence', 0),
-                        'description': pred.get('description', '')
-                    })
-
-        except Exception as e:
-            logger.error(f"Error en /partido: {e}")
-            await update.message.reply_text(
-                "❌ Error al predecir partido. Intenta de nuevo."
-            )
-
-    async def trends_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /tendencias - Patrones confiables"""
-        patterns = self.analyzer.get_trending_patterns(min_confidence=70)
-
-        response = "📈 *PATRONES MÁS CONFIABLES*\n\n"
-        response += "Estos patrones se cumplen con alta frecuencia:\n\n"
-
-        for i, pattern in enumerate(patterns, 1):
-            conf_emoji = "🔥" if pattern['confidence'] >= 80 else "✅"
-
-            response += f"{conf_emoji} *{pattern['pattern']}* ({pattern['confidence']}%)\n"
-            response += f"└ {pattern['description']}\n"
-            response += f"└ _Aplica a: {', '.join(pattern['applies_to'])}_\n\n"
-
-        response += "\n💡 Usa estos patrones como guía para tus análisis!"
-
-        await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
-
-    async def stats_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /stats - Estadísticas del bot"""
-        stats = self.db.get_statistics(30)
-
-        response = "📊 *ESTADÍSTICAS DEL BOT*\n\n"
-        response += f"📅 *Últimos 30 días:*\n\n"
-
-        response += f"📈 Predicciones totales: {stats['total_predictions']}\n"
-        response += f"✅ Verificadas: {stats['verified_predictions']}\n"
-        response += f"🎯 Correctas: {stats['correct_predictions']}\n"
-        response += f"📊 Precisión: *{stats['accuracy']}%*\n\n"
-
-        if stats['by_type']:
-            response += "🎲 *Por tipo de predicción:*\n"
-            for pred_type, data in stats['by_type'].items():
-                response += f"\n• {pred_type}\n"
-                response += f"  └ {data['correct']}/{data['total']} ({data['accuracy']}%)\n"
-
-        response += "\n💡 Seguimos mejorando nuestras predicciones!"
-
-        await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
-
-    async def leagues_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /ligas"""
-        response = "🏆 *LIGAS DISPONIBLES*\n\n"
-
-        for code, name in self.analyzer.LEAGUES.items():
-            flag = {
-                'ESP': '🇪🇸',
-                'ENG': '🏴󠁧󠁢󠁥󠁮󠁧󠁿',
-                'GER': '🇩🇪',
-                'ITA': '🇮🇹',
-                'FRA': '🇫🇷',
-                'ARG': '🇦🇷'
-            }.get(code, '⚽')
-
-            response += f"{flag} *{name}*\n"
-
-        response += "\n💡 Usa /hoy para ver partidos de todas las ligas"
-
-        await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
-
-    async def international_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /selecciones [país1] vs [país2]"""
-        if not context.args or 'vs' not in ' '.join(context.args).lower():
-            # Mostrar selecciones disponibles
-            response = "🌍 *SELECCIONES DISPONIBLES*\n\n"
-            response += "🏆 *Sudamérica:*\n"
-            response += "🇦🇷 Argentina, 🇧🇷 Brasil, 🇺🇾 Uruguay\n"
-            response += "🇨🇴 Colombia, 🇨🇱 Chile, 🇪🇨 Ecuador\n\n"
-
-            response += "🏆 *Europa:*\n"
-            response += "🇫🇷 Francia, 🇪🇸 España, 🇩🇪 Alemania\n"
-            response += "🇮🇹 Italia, 🏴󠁧󠁢󠁥󠁮󠁧󠁿 Inglaterra, 🇵🇹 Portugal\n\n"
-
-            response += "💡 *Uso:* `/selecciones Argentina vs Brasil`\n"
-            response += "📅 Incluye: Amistosos, Eliminatorias, Mundial 2026"
-
-            await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
-            return
-
-        full_text = ' '.join(context.args)
-        teams = full_text.split(' vs ')
-
-        if len(teams) != 2:
-            teams = full_text.split(' VS ')
-
-        if len(teams) != 2:
-            await update.message.reply_text(
-                "❌ Formato incorrecto. Usa: /selecciones [país1] vs [país2]\n"
-                "Ejemplo: `/selecciones Argentina vs Brasil`",
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return
-
-        team1 = teams[0].strip()
-        team2 = teams[1].strip()
-
-        await update.message.reply_text(
-            f"🌍 Analizando {team1} vs {team2}..."
-        )
-
-        try:
-            # Detectar tipo de competición (por defecto amistoso)
-            competition = 'FRIENDLIES'
-            comp_keywords = {
-                'mundial': 'WORLD_CUP',
-                'copa america': 'COPA_AMERICA',
-                'euro': 'EURO',
-                'eliminatoria': 'QUALIFIERS_CONMEBOL',
-                'amistoso': 'FRIENDLIES'
-            }
-
-            for keyword, comp in comp_keywords.items():
-                if keyword in full_text.lower():
-                    competition = comp
-                    break
-
-            prediction = self.analyzer.predict_international_match(team1, team2, competition)
-
-            if 'error' in prediction:
-                await update.message.reply_text(
-                    f"❌ {prediction['error']}\n"
-                    "Verifica los nombres de las selecciones."
+                    f"😕 No hay partidos próximos en {league_name}\n\n"
+                    f"Posiblemente sea fuera de temporada.",
+                    parse_mode=ParseMode.MARKDOWN
                 )
                 return
 
             # Formatear respuesta
-            response = f"🌍 *{prediction['match']}*\n"
-            response += f"🏆 {prediction['competition']}\n\n"
+            response = f"📅 *PRÓXIMOS PARTIDOS - {league_name}*\n\n"
 
-            if prediction['predictions']:
-                response += "📊 *Predicciones:*\n\n"
+            for i, match in enumerate(upcoming[:5], 1):
+                response += f"*{i}. {match['home_team']} vs {match['away_team']}*\n"
 
-                for pred in prediction['predictions']:
-                    conf_emoji = "🔥" if pred['confidence'] >= 75 else "✅" if pred['confidence'] >= 65 else "⚠️"
-                    response += f"{conf_emoji} *{pred['type']}* ({pred['confidence']}%)\n"
-                    response += f"   └ {pred['description']}\n"
-                    response += f"   └ _{pred['reason']}_\n\n"
+                # Fecha
+                try:
+                    date = datetime.fromisoformat(match['date'])
+                    response += f"   🕐 {date.strftime('%d/%m/%Y %H:%M')}\n"
+                except:
+                    response += f"   🕐 {match.get('date', 'TBD')}\n"
 
-            if 'note' in prediction:
-                response += f"\n{prediction['note']}"
+                response += f"   🏆 Jornada {match.get('matchday', 'N/A')}\n"
+                response += "\n"
+
+            response += f"Total programados: {len(upcoming)} partidos"
 
             await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
 
         except Exception as e:
-            logger.error(f"Error en /selecciones: {e}")
+            logger.error(f"Error en /partidos: {e}", exc_info=True)
             await update.message.reply_text(
-                "❌ Error al analizar partido de selecciones. Intenta de nuevo."
+                f"❌ Error obteniendo partidos\n\n{str(e)}"
             )
 
-    async def worldcup_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /mundial - Info sobre Mundial 2026"""
-        response = """
-🏆 *COPA DEL MUNDO FIFA 2026* 🏆
+    async def estado_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Comando /estado"""
+        status_msg = await update.message.reply_text("⏳ Verificando APIs...")
 
-📅 *Fechas:* 11 Junio - 19 Julio 2026
+        response = "⚙️ *ESTADO DEL SISTEMA*\n\n"
 
-🌎 *Sedes:*
-• 🇺🇸 Estados Unidos (11 ciudades)
-• 🇲🇽 México (3 ciudades)
-• 🇨🇦 Canadá (2 ciudades)
+        # Test football-data.org
+        try:
+            comps = self.data_fetcher.get_competitions()
+            if comps:
+                response += "✅ *football-data.org*: Funcionando\n"
+                response += f"   • {len(comps)} competiciones disponibles\n"
+            else:
+                response += "⚠️ *football-data.org*: Sin respuesta\n"
+        except Exception as e:
+            response += f"❌ *football-data.org*: Error\n"
+            response += f"   • {str(e)[:50]}\n"
 
-⚽ *Formato:*
-• 48 selecciones (primera vez)
-• 16 grupos de 3 equipos
-• 104 partidos totales
+        response += "\n"
 
-🎯 *Predicciones del Bot:*
+        # Test The Odds API
+        if self.data_fetcher.odds_api_key:
+            response += "✅ *The Odds API*: Configurada\n"
 
-El bot tendrá análisis especial para el Mundial:
-✅ Predicciones de fase de grupos
-✅ Análisis de eliminación directa
-✅ Seguimiento en tiempo real
-✅ Estadísticas históricas de Mundiales
-✅ Análisis de favoritos
+            if self.data_fetcher.odds_requests_remaining is not None:
+                remaining = self.data_fetcher.odds_requests_remaining
+                response += f"   • Requests restantes: *{remaining}*\n"
 
-📊 *Datos disponibles:*
-• Rendimiento en eliminatorias
-• Historial en Mundiales previos
-• Forma actual de cada selección
-• Head-to-head entre selecciones
+                if remaining < 50:
+                    response += f"   • ⚠️ Quedan menos de 50 requests\n"
+                elif remaining < 100:
+                    response += f"   • ⚡ Usar con moderación\n"
+                else:
+                    response += f"   • ✓ Suficientes requests\n"
+            else:
+                response += "   • No se han usado requests aún\n"
+                response += "   • Límite: 500 requests/mes (free tier)\n"
+        else:
+            response += "❌ *The Odds API*: No configurada\n"
+            response += "   • ODDS_API_KEY no encontrada en .env\n"
 
-💡 *Mientras tanto:*
-Usa `/selecciones [país1] vs [país2]` para analizar amistosos y eliminatorias!
+        response += "\n"
+        response += f"🕐 Última verificación: {datetime.now().strftime('%H:%M:%S')}"
 
-Ejemplos:
-• `/selecciones Argentina vs Brasil`
-• `/selecciones España vs Francia`
-• `/selecciones Estados Unidos vs México`
-
-🔥 ¡El bot estará listo con análisis completo para el Mundial 2026!
-        """
-
+        await status_msg.delete()
         await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
 
-    async def upcoming_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /proximos - Partidos de los próximos días"""
-        # Determinar cuántos días mostrar
-        days = 7  # Default: próxima semana
-
-        if context.args:
-            try:
-                days = int(context.args[0])
-                if days < 1 or days > 14:
-                    days = 7
-            except ValueError:
-                days = 7
-
-        await update.message.reply_text(
-            f"🔍 Buscando partidos de los próximos {days} días..."
-        )
+    async def error_handler(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Manejar errores"""
+        logger.error(f"Error: {context.error}", exc_info=context.error)
 
         try:
-            matches = self.analyzer.get_upcoming_matches(days_ahead=days)
-
-            if not matches:
+            if update and update.message:
                 await update.message.reply_text(
-                    f"😔 No hay partidos programados para los próximos {days} días en las ligas principales."
+                    "❌ Ocurrió un error inesperado.\n\n"
+                    "Intenta nuevamente o usa /estado para verificar las APIs."
                 )
-                return
-
-            # Agrupar por fecha
-            from collections import defaultdict
-            matches_by_date = defaultdict(list)
-
-            for match in matches:
-                match_date = match.get('date', 'TBD')
-                matches_by_date[match_date].append(match)
-
-            response = f"⚽ *PARTIDOS PRÓXIMOS* ({days} días)\n\n"
-
-            # Ordenar por fecha
-            for date in sorted(matches_by_date.keys())[:10]:  # Máximo 10 fechas
-                matches_on_date = matches_by_date[date]
-
-                # Formatear fecha
-                try:
-                    from datetime import datetime
-                    date_obj = datetime.fromisoformat(date)
-                    formatted_date = date_obj.strftime('%d/%m/%Y - %A')
-                except:
-                    formatted_date = date
-
-                response += f"📅 *{formatted_date}*\n\n"
-
-                for match in matches_on_date[:5]:  # Máximo 5 partidos por día
-                    response += f"🏆 *{match.get('league', 'Liga')}*\n"
-                    response += f"🏠 {match.get('home', match.get('home_team', 'TBD'))}"
-                    response += f" vs {match.get('away', match.get('away_team', 'TBD'))} 🚗\n"
-                    response += f"🕐 {match.get('time', 'TBD')}\n"
-
-                    predictions = match.get('predictions', [])
-                    if predictions:
-                        best_pred = predictions[0]
-                        conf_emoji = "🔥" if best_pred['confidence'] >= 80 else "✅"
-                        response += f"{conf_emoji} *{best_pred['type']}* ({best_pred['confidence']}%)\n"
-
-                    response += "\n"
-
-                # Separador entre fechas
-                if date != list(matches_by_date.keys())[-1]:
-                    response += "━━━━━━━━━━━━━━━━━━━━\n\n"
-
-            response += "\n💡 Usa `/partido [equipo1] vs [equipo2]` para análisis detallado"
-
-            await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
-
-        except Exception as e:
-            logger.error(f"Error en /proximos: {e}")
-            await update.message.reply_text(
-                "❌ Error al obtener partidos próximos. Intenta de nuevo."
-            )
-
-    async def xg_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /xg [equipo1] vs [equipo2] - Análisis xG detallado"""
-        if not context.args or 'vs' not in ' '.join(context.args).lower():
-            await update.message.reply_text(
-                "❌ Uso: /xg [equipo local] vs [equipo visitante] [liga]\n"
-                "Ejemplo: `/xg Manchester City vs Liverpool EPL`\n\n"
-                "Ligas disponibles: EPL, La Liga, Bundesliga, Serie A, Ligue 1",
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return
-
-        full_text = ' '.join(context.args)
-
-        # Extraer liga si está al final
-        league = 'EPL'  # Default
-        words = full_text.split()
-        if words and words[-1].upper() in ['EPL', 'BUNDESLIGA', 'LIGA', 'SERIE', 'LIGUE']:
-            league_word = words[-1].upper()
-            if league_word == 'LIGA':
-                league = 'La Liga'
-            elif league_word == 'SERIE':
-                league = 'Serie A'
-            elif league_word == 'LIGUE':
-                league = 'Ligue 1'
-            else:
-                league = league_word
-            # Remover liga del texto para parsear equipos
-            full_text = ' '.join(words[:-1])
-
-        # Parsear y normalizar nombres de equipos
-        home_team, away_team = parse_team_names(full_text)
-
-        if not home_team or not away_team:
-            await update.message.reply_text("❌ Formato incorrecto. Usa: /xg [equipo1] vs [equipo2]")
-            return
-
-        # Formatear nombres para mostrar
-        home_display = format_team_name(home_team)
-        away_display = format_team_name(away_team)
-
-        await update.message.reply_text(
-            f"📊 Analizando xG: {home_display} vs {away_display}..."
-        )
-
-        try:
-            from xg_analyzer import xGAnalyzer
-
-            xg_analyzer = xGAnalyzer()
-            comparison = xg_analyzer.compare_teams_xg(home_team, away_team, league)
-
-            if 'error' in comparison:
-                await update.message.reply_text(
-                    f"❌ {comparison['error']}\n\n"
-                    "Verifica:\n"
-                    "• Nombres de equipos correctos\n"
-                    "• Liga válida (EPL, La Liga, Bundesliga, Serie A, Ligue 1)\n"
-                    "• Equipos jugando en esa liga esta temporada"
-                )
-                return
-
-            # Formatear y enviar análisis
-            formatted = xg_analyzer.format_xg_analysis_for_telegram(comparison)
-            await update.message.reply_text(formatted, parse_mode=ParseMode.MARKDOWN)
-
-        except Exception as e:
-            logger.error(f"Error en /xg: {e}")
-            import traceback
-            traceback.print_exc()
-            await update.message.reply_text(
-                "❌ Error al analizar xG.\n"
-                "Asegúrate de usar nombres correctos de equipos."
-            )
-
-    async def subscribe_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /suscribir - Toggle notificaciones"""
-        chat_id = update.effective_chat.id
-        new_state = self.db.toggle_subscription(chat_id)
-
-        if new_state:
-            message = "✅ ¡Suscripción activada!\n\nRecibirás notificaciones diarias con las mejores predicciones."
-        else:
-            message = "❌ Suscripción desactivada.\n\nYa no recibirás notificaciones automáticas.\nPuedes reactivarla cuando quieras con /suscribir"
-
-        await update.message.reply_text(message)
-
-    async def h2h_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /h2h - Head-to-Head analysis"""
-        if not context.args or 'vs' not in ' '.join(context.args).lower():
-            await update.message.reply_text(
-                "❌ Uso: /h2h [equipo1] vs [equipo2]\n"
-                "Ejemplo: `/h2h Manchester City vs Liverpool`",
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return
-
-        full_text = ' '.join(context.args)
-
-        # Parsear y normalizar nombres de equipos
-        home_team, away_team = parse_team_names(full_text)
-
-        if not home_team or not away_team:
-            await update.message.reply_text("❌ Formato incorrecto")
-            return
-
-        # Formatear nombres para mostrar
-        home_display = format_team_name(home_team)
-        away_display = format_team_name(away_team)
-
-        await update.message.reply_text(f"⚔️ Analizando historial: {home_display} vs {away_display}...")
-
-        try:
-            from advanced_analysis import AdvancedAnalyzer
-            analyzer = AdvancedAnalyzer()
-            h2h = analyzer.analyze_head_to_head(home_team, away_team, 'ENG')
-
-            if 'error' not in h2h:
-                formatted = analyzer.format_h2h_for_telegram(h2h)
-                await update.message.reply_text(formatted, parse_mode=ParseMode.MARKDOWN)
-            else:
-                await update.message.reply_text(f"❌ {h2h['error']}")
-
-        except Exception as e:
-            logger.error(f"Error en /h2h: {e}")
-            await update.message.reply_text("❌ Error al analizar H2H")
-
-    async def momentum_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /momentum - Análisis de racha"""
-        if not context.args:
-            await update.message.reply_text(
-                "❌ Uso: /momentum [equipo]\n"
-                "Ejemplo: `/momentum Manchester City`",
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return
-
-        # Normalizar nombre del equipo
-        team_input = ' '.join(context.args)
-        team_name = normalize_team_name(team_input)
-
-        # Formatear para mostrar
-        team_display = format_team_name(team_name)
-
-        await update.message.reply_text(f"📊 Analizando momentum de {team_display}...")
-
-        try:
-            from advanced_analysis import AdvancedAnalyzer
-            analyzer = AdvancedAnalyzer()
-            momentum = analyzer.analyze_momentum(team_name, 'ENG')
-
-            if 'error' not in momentum:
-                formatted = analyzer.format_momentum_for_telegram(momentum)
-                await update.message.reply_text(formatted, parse_mode=ParseMode.MARKDOWN)
-            else:
-                await update.message.reply_text(f"❌ {momentum['error']}")
-
-        except Exception as e:
-            logger.error(f"Error en /momentum: {e}")
-            await update.message.reply_text("❌ Error al analizar momentum")
-
-    async def fijini_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Comando /fijini - Top 3 locks de las próximas 48 horas"""
-        await update.message.reply_text(
-            "🔥 *FIJINI 48HS - TOP 3 LOCKS (hoy + mañana)* 🔥\n\n"
-            "Analizando mercado completo próximas 48 horas...\n"
-            "Análisis ultra-potente con múltiples factores:\n"
-            "• xG (Expected Goals) real ⚽\n"
-            "• Forma y momentum reciente 🔥\n"
-            "• Head-to-Head histórico ⚔️\n"
-            "• Value bets con odds reales 💰\n"
-            "• Contexto (lesiones, química, estrategia) 📊\n\n"
-            "_Esto puede tardar 30-90 segundos..._",
-            parse_mode=ParseMode.MARKDOWN
-        )
-
-        try:
-            # Obtener partidos de las próximas 48 horas (hoy + mañana)
-            today_matches = self.analyzer.get_today_matches()
-
-            # Intentar obtener partidos de mañana
-            try:
-                tomorrow_matches = self.analyzer.get_matches_by_date(days_ahead=1)
-                matches = today_matches + (tomorrow_matches if tomorrow_matches else [])
-                logger.info(f"📅 48HS: {len(today_matches)} partidos hoy + {len(tomorrow_matches) if tomorrow_matches else 0} mañana = {len(matches)} total")
-            except Exception as e:
-                logger.warning(f"No se pudieron obtener partidos de mañana: {e}")
-                matches = today_matches
-                logger.info(f"📅 Analizando solo {len(today_matches)} partidos de hoy")
-
-            if not matches:
-                await update.message.reply_text(
-                    "😔 No hay partidos programados para hoy.\n"
-                    "Prueba mañana con /fijini"
-                )
-                return
-
-            logger.info(f"Encontrados {len(matches)} partidos para analizar locks")
-
-            # Analizar con el sistema de locks
-            from daily_locks import DailyLocksAnalyzer
-
-            locks_analyzer = DailyLocksAnalyzer()
-            locks = locks_analyzer.find_daily_locks(matches, top_n=3)
-
-            # Formatear y enviar
-            formatted = locks_analyzer.format_locks_for_telegram(locks)
-
-            # Telegram tiene límite de 4096 caracteres, dividir si es necesario
-            if len(formatted) > 4000:
-                # Dividir en chunks
-                chunks = []
-                current_chunk = ""
-
-                for line in formatted.split('\n'):
-                    if len(current_chunk) + len(line) + 1 < 4000:
-                        current_chunk += line + '\n'
-                    else:
-                        chunks.append(current_chunk)
-                        current_chunk = line + '\n'
-
-                if current_chunk:
-                    chunks.append(current_chunk)
-
-                # Enviar cada chunk
-                for chunk in chunks:
-                    await update.message.reply_text(chunk, parse_mode=ParseMode.MARKDOWN)
-            else:
-                await update.message.reply_text(formatted, parse_mode=ParseMode.MARKDOWN)
-
-        except Exception as e:
-            logger.error(f"Error en /fijini: {e}")
-            import traceback
-            traceback.print_exc()
-            await update.message.reply_text(
-                "❌ Error al analizar locks del día.\n\n"
-                "Posibles causas:\n"
-                "• No hay suficientes datos disponibles\n"
-                "• Error en APIs externas\n"
-                "• Partidos sin stats suficientes\n\n"
-                "Intenta de nuevo en unos minutos o prueba /hoy"
-            )
-
-    async def unknown_command(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        """Manejar comandos desconocidos"""
-        await update.message.reply_text(
-            "❌ Comando no reconocido.\n"
-            "Usa /help para ver los comandos disponibles."
-        )
+        except:
+            pass
 
     def run(self):
-        """Iniciar el bot"""
-        logger.info("🤖 Iniciando Soccer Betting Bot...")
+        """Ejecutar bot"""
+        logger.info("Iniciando Soccer Betting Bot...")
 
-        # Crear aplicación
-        self.app = Application.builder().token(self.token).build()
+        # Crear application
+        app = Application.builder().token(self.token).build()
 
-        # Registrar comandos
-        self.app.add_handler(CommandHandler("start", self.start_command))
-        self.app.add_handler(CommandHandler("help", self.help_command))
-        self.app.add_handler(CommandHandler("hoy", self.today_command))
-        self.app.add_handler(CommandHandler("proximos", self.upcoming_command))
-        self.app.add_handler(CommandHandler("analizar", self.analyze_command))
-        self.app.add_handler(CommandHandler("partido", self.match_command))
-        self.app.add_handler(CommandHandler("xg", self.xg_command))
-        self.app.add_handler(CommandHandler("h2h", self.h2h_command))
-        self.app.add_handler(CommandHandler("momentum", self.momentum_command))
-        self.app.add_handler(CommandHandler("selecciones", self.international_command))
-        self.app.add_handler(CommandHandler("mundial", self.worldcup_command))
-        self.app.add_handler(CommandHandler("tendencias", self.trends_command))
-        self.app.add_handler(CommandHandler("stats", self.stats_command))
-        self.app.add_handler(CommandHandler("ligas", self.leagues_command))
-        self.app.add_handler(CommandHandler("suscribir", self.subscribe_command))
+        # Registrar handlers
+        app.add_handler(CommandHandler("start", self.start_command))
+        app.add_handler(CommandHandler("ayuda", self.ayuda_command))
+        app.add_handler(CommandHandler("help", self.ayuda_command))
+        app.add_handler(CommandHandler("analizar", self.analizar_command))
+        app.add_handler(CommandHandler("partidos", self.partidos_command))
+        app.add_handler(CommandHandler("estado", self.estado_command))
 
-        # Daily Locks Command
-        self.app.add_handler(CommandHandler("fijini", self.fijini_command))
+        # Error handler
+        app.add_error_handler(self.error_handler)
 
-        # Manejar mensajes desconocidos
-        self.app.add_handler(MessageHandler(filters.COMMAND, self.unknown_command))
+        # Iniciar
+        logger.info("Bot listo - esperando comandos...")
+        app.run_polling(allowed_updates=Update.ALL_TYPES)
 
-        logger.info("✅ Bot configurado. Iniciando polling...")
 
-        # Iniciar bot
-        self.app.run_polling(allowed_updates=Update.ALL_TYPES)
+def main():
+    """Main"""
+    token = os.getenv('TELEGRAM_BOT_TOKEN')
+
+    if not token:
+        logger.error("❌ TELEGRAM_BOT_TOKEN no encontrado en .env")
+        return
+
+    try:
+        bot = SoccerBettingBot(token)
+        bot.run()
+    except KeyboardInterrupt:
+        logger.info("Bot detenido por usuario")
+    except Exception as e:
+        logger.error(f"Error fatal: {e}", exc_info=True)
 
 
 if __name__ == '__main__':
-    # Cargar token desde .env
-    from dotenv import load_dotenv
-    load_dotenv()
-
-    TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
-
-    if not TOKEN:
-        print("❌ Error: TELEGRAM_BOT_TOKEN no encontrado en .env")
-        exit(1)
-
-    # Iniciar bot
-    bot = SoccerBettingBot(TOKEN)
-    bot.run()
+    main()
